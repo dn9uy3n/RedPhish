@@ -96,7 +96,7 @@ update), không bao giờ ghi đè bằng dấu `*`. Routes rỗng = TOÀN BỘ 
 | Tool | Vai trò |
 |---|---|
 | `tools/egconsole.py` | Console REPL duy nhất: fleet API (status/phishlets/sessions/lures), `export <id>`, `open <id>` (mở browser signed-in), `tail` (SSH journal), `puppet` — config `tools/my-servers.json` + `tools/console.json` (đều gitignored, mẫu: `*.example.json`) |
-| `deploy/session_launcher.py` | Mở Chrome/Edge với cookies session từ API (`--fresh`, `--headless`, `--disable-http2` cho login.live.com) |
+| `tools/lib/session_launcher.py` | Mở Chrome/Edge với cookies session từ API (`--fresh`, `--headless`, `--disable-http2` cho login.live.com) |
 | `deploy/export_session_cookies.py` | Xuất cookies db → Cookie-Editor JSON |
 | `src/puppet` (evilpuppet-lite) | chromedp headless: auto-login + chờ MFA + push cookies qua API mTLS |
 

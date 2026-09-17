@@ -117,6 +117,17 @@ Relay-specific ops (capture inspection, session replay, self-testing) are docume
 fake credentials through the relay against Google; dozens of submissions burn the
 residential exit's reputation ("This browser or app may not be secure") for 30–60 min.
 
+## Changing source code (deploy flow)
+
+Edit `src/` (or `tools/relay/`) locally, then one command syncs, builds on the
+node, restarts both services and heartbeats the API:
+
+```bash
+SSH_ID=/path/to/key ./deploy/sync-node.sh [user@host]
+```
+
+Verify lures/sessions via egconsole or MCP before handing anything to users.
+
 ## Service checks on the node
 
 ```bash

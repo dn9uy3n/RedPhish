@@ -46,6 +46,11 @@ tool call). For Google relay captures: `relay_sessions` → `relay_capture <sid>
 direct (Entra flags residential logins on work accounts). WARNING: echoing the masked
 password back in `proxy_set` clobbers it — omit the field or send the real value.
 
+**Changing source code** — edit `src/` or `tools/relay/` locally, then
+`SSH_ID=<key> ./deploy/sync-node.sh` syncs → builds on the node → restarts both
+services → heartbeats the API. Verify lures/sessions before handing over.
+Architecture/module map: `docs/architecture.md`.
+
 **Relay ops** — self-tests are **render-only** (fake submits burn the residential exit
 for 30–60 min: "This browser or app may not be secure"). After bgrelay code updates,
 restart the service (page.html loads into RAM at start).

@@ -1,16 +1,43 @@
 # tools/
 
-Toàn bộ toolchain vận hành của fake-evilginx-pro. Chạy bằng Python 3 (stdlib)
-hoặc bash; không cần cài thêm gì.
+Toàn bộ toolchain vận hành của fake-evilginx-pro. Cấu trúc v0.11 (xem
+`docs/architecture.md` cho bản đồ tổng thể):
+
+```
+tools/
+├── lib/            thư viện dùng chung (một nguồn duy nhất — import từ đây)
+├── egconsole.py    operator REPL (console chính)
+├── egctl.py        one-shot fleet CLI
+├── mcp/            MCP server cho AI agent (Claude/ZCode)
+├── relay/          bgrelay sidecar (Google real-browser relay) + trang victim
+├── lab/            môi trường lab tự dựng
+├── patches/        HISTORICAL — cách tạo fork ban đầu (frozen)
+└── authoring kit   make_phishlet / make_dns_zone / mint_internal_cert / deploy_offline / ja3
+```
+
+## lib/ — thư viện dùng chung
+
+| File | Chức năng |
+|------|-----------|
+| `lib/egapi.py` | **MTLS API client duy nhất** + node list (`my-servers.json`, bare array). egconsole/egctl/egmcp đều import từ đây — không tự viết client mới. |
+| `lib/cookies.py` | Cookie extraction → playwright (2 semantics đã verify qua tham số `samesite`/`force_secure`) + Cookie-Editor export |
+| `lib/session_launcher.py` | Mở Chrome/Edge thật đã đăng nhập bằng cookies session (`launch_with_cookies` + CLI; `__Host-` qua url theo RFC 6265bis) |
+
+## Tools chính
 
 | Tool | Chức năng | Ví dụ |
 |------|-----------|-------|
-| `egctl.py` | **Client fleet** — điều khiển mọi server từ PC cá nhân qua API mTLS | `python3 egctl.py servers.json status` |
-| `make_phishlet.py` | Sinh phishlet YAML + lint (authoring kit) | `python3 make_phishlet.py --name m1 --phish-domain lab.test --orig-host portal.lab.test --cookie SESS` |
-| `mint_internal_cert.sh` | Internal CA + cert cho hostname (thay ACME, zero egress) | `./mint_internal_cert.sh www.lab.test lab.test` |
+| `egconsole.py` | **Operator console** — REPL điều khiển node qua mTLS API (phishlets, lures, sessions, proxy, export, open) | `python egconsole.py` → `help` |
+| `egctl.py` | One-shot fleet CLI | `python egctl.py my-servers.json status` |
+| `mcp/egmcp.py` | MCP server (27 tools) cho AI agent — đọc `tools/mcp/requirements.txt` | xem `docs/mcp.md` |
+| `make_phishlet.py` | Sinh phishlet YAML + lint (authoring kit) | `python make_phishlet.py --name m1 --phish-domain lab.test --orig-host portal.lab.test --cookie SESS` |
+| `mint_internal_cert.sh` | Internal CA + cert cho hostname (thay ACME, zero egress, không CT-log) | `./mint_internal_cert.sh www.lab.test lab.test` |
 | `deploy_offline.sh` | Auto-deploy fork lên host nội bộ qua SSH + systemd | `./deploy_offline.sh 192.168.1.50 ubuntu pass /tmp/src.tar.gz` |
-| `make_dns_zone.py` | Sinh dnsmasq zone cho phish domain (DNS nội bộ đa máy) | `python3 make_dns_zone.py --domain lab.test --ip 192.168.1.10` |
+| `make_dns_zone.py` | Sinh dnsmasq zone cho phish domain (DNS nội bộ đa máy) | `python make_dns_zone.py --domain lab.test --ip 192.168.1.10` |
 | `ja3.py` | JA3 md5 calculator từ pipe tshark (audit TLS fingerprint) | xem `docs/BLUE_TEAM_IOC.md` |
+
+Config operator (gitignored): `my-servers.json` (node + cert + relay block),
+`console.json` (SSH cho `tail`/`puppet`), `servers.example.json` (mẫu format).
 
 ## lab/ — môi trường lab tự dựng
 
@@ -24,17 +51,8 @@ hoặc bash; không cần cài thêm gì.
 Lưu ý: `testsite.py`/`webhook_rx.py` tự定位 BASE theo `$HOME/evilginx2-lab` —
 đổi bằng biến môi trường hoặc sửa hằng nếu đặt chỗ khác.
 
-## patches/ — bảo trì rebase lên upstream mới
+## patches/ — HISTORICAL (frozen)
 
-Bộ patch scripts (assert-exact-then-replace) đã dùng để tạo fork từ evilginx2
-CE 3.3.0, kèm file .go gốc của từng extension. Khi upstream phát hành bản mới:
-
-1. Clone upstream mới, vào thư mục repo.
-2. Copy các file .go vào đúng vị trí (`core/`, `database/`).
-3. Chạy các patch theo thứ tự số (w1→w5), mỗi script sẽ abort nếu anchor lệch.
-4. `go mod tidy && go mod vendor && go build -mod=vendor`.
-
-Thứ tự khuyến nghị: `patch_aes_params` → `patch_api` → `patch_multidomain` →
-`patch_botguard` → `patch_botguard2` → `patch_bg3` → `patch_rewrite` →
-`patch_jsobf` → `patch_jsobf2` → `patch_webhook` → `patch_wave1` →
-`patch_wave3` → `patch_wave5`.
+Bộ patch scripts đã dùng để tạo fork ban đầu (2026-09). **Không phải nguồn sự
+thật** — sửa code trực tiếp trong `src/`. Xem `patches/README.md` cho ngữ cảnh
+và quy trình re-derive từ upstream nếu cần.
