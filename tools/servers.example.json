@@ -1,0 +1,16 @@
+[
+ {
+  "name": "vps-node-1",
+  "host": "<NODE_IP>",
+  "port": 9443,
+  "base": "/api-XXXXXXXXXXXX",
+  "ca": "api-certs-vps/ca.crt",
+  "cert": "api-certs-vps/client.crt",
+  "key": "api-certs-vps/client.key",
+  "relay": {
+   "host": "127.0.0.1",
+   "port": 9445,
+   "op_key": "<RELAY_OP_KEY>"
+  }
+ }
+]

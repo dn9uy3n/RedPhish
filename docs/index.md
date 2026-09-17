@@ -1,0 +1,68 @@
+---
+layout: default
+title: Home
+---
+
+# fake-evilginx-pro
+
+**A full-featured reverse-proxy phishing framework for authorized red teams** — an extended
+fork of [evilginx2 CE 3.3.0](https://github.com/kgretzky/evilginx2) (GPL-3.0), cleanly
+re-implementing Evilginx Pro-class features for internal / air-gapped environments.
+
+> ⚠️ **Authorized use only.** This tool is for education and red-team campaigns explicitly
+> authorized by the system owner. Not affiliated with BreakDev/Evilginx Pro — no binaries or
+> code from the commercial product are used. Upstream GPL-3.0 applies.
+
+---
+
+## Documentation map
+
+| Document | Contents |
+|---|---|
+| [Architecture](architecture.md) | Request lifecycle, module map, deploy topology — the maintainer's map |
+| [Getting started](getting-started.md) | Build, deploy to a VPS, DNS + wildcard cert, first lure — the shortest path to a working node |
+| [Operations guide](operations.md) | Day-2 operations: the `egconsole` command reference, phishlet switching, lure lifecycle, session & cookie export, mailbox reuse |
+| [Phishlet authoring](phishlet-authoring.md) | Writing phishlets: structure, auth-token capture, sub-filters, multi-domain rules, CSD hardening, token-gate |
+| [Google real-browser relay](google-relay.md) | The `bgrelay` sidecar that defeats origin-bound botguard: architecture, API, capture pipeline, session replay |
+| [Upstream proxy](proxy.md) | Feature #17 — per-phishlet egress routing (residential exits, datacenter blocks) |
+| [mTLS API reference](api.md) | The hidden HTTPS API: phishlets, lures, sessions, proxy, relay |
+| [Troubleshooting](troubleshooting.md) | Field-proven gotchas: botguard decoys, DNS wildcard rules, cookie import, zombie chromium, IP reputation |
+| [Phishlet status & features](FEATURES.md) | The full Pro-parity feature matrix |
+| [Blue-team IOC notes](BLUE_TEAM_IOC.md) | What defenders can detect — honest detection notes |
+
+## Phishlet status
+
+| Phishlet | Status | Notes |
+|---|---|---|
+| `ms365` | ✅ **production-ready** | Work flow (ESTSAUTHPERSISTENT) + consumer MSA (WLSSC) capture, mailbox reuse, token-gate, CSD hardening (Chrome Safe Browsing bypass verified), JA4 allowlist |
+| `google` | ✅ **production-ready via real-browser relay** | Classic MITM is impossible (Google botguard is origin-bound); solved with the `bgrelay` sidecar — victims sign in on a mirrored real `accounts.google.com` session, credentials + `.google.com` cookies captured, **cookie replay into Gmail verified** |
+
+## The one-paragraph architecture
+
+```
+Victim ──► evilginx2 :443 (reverse proxy, wildcard cert, botguard JA4 filter,
+            lure token-gate) ──► upstream identity provider
+            │
+            ├─ ms365: transparent MITM — session cookies captured, replayed
+            │
+            └─ google: /__relay/* + relay-lure ──► bgrelay sidecar :9445
+                 (patchright headful Chromium under Xvfb, real accounts.google.com
+                 via residential SOCKS exit) ──► mirror stream + input/click relay
+                 ──► capture {email, password, cookies} to bgrelay-store/
+```
+
+## Repository layout
+
+```
+src/                 Go source (fork core + API + botguard + relay routes)
+src/phishlets/       campaign phishlets — GITIGNORED by design, never published
+deploy/              deploy scripts, systemd templates, wildcard cert script
+tools/               egconsole.py (operator console), relay/ (bgrelay sidecar),
+                     kit generators, offline deploy tooling
+docs/                this documentation (also the GitHub Pages site)
+```
+
+## Links
+
+- Source: [github.com/dn9uy3n/fake-evilginx-pro](https://github.com/dn9uy3n/fake-evilginx-pro)
+- Vietnamese README: [README.vi.md](https://github.com/dn9uy3n/fake-evilginx-pro/blob/main/README.vi.md)
