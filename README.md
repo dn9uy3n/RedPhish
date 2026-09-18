@@ -44,7 +44,17 @@ Deploy runbook (VPS, DNS, wildcard cert, first lure):
 Day-2 operations + phishlet switching:
 [docs/operations](https://dn9uy3n.github.io/fake-evilginx-pro/operations.html).
 
-> Campaign phishlets (`src/phishlets/*.yaml`) are **gitignored by design** — never shipped.
+> ⚠️ **No phishlets are included in this public repository** — campaign phishlets
+> (`src/phishlets/*.yaml`) are gitignored by design, so this framework cannot be
+> used out-of-the-box against anyone. This is deliberate: ready-made phishlets for
+> real identity providers are trivially abusable for unlawful phishing.
+>
+> **Authorized researchers and red teamers** can author phishlets for their own
+> scoped engagements using the bundled resources:
+> [`skills/creating-phishlets`](skills/creating-phishlets/SKILL.md) (AI-agent
+> authoring skill), the [phishlet authoring guide](https://dn9uy3n.github.io/fake-evilginx-pro/phishlet-authoring.html)
+> and the generator (`tools/make_phishlet.py`), with lab examples in
+> [`examples/phishlets/`](examples/phishlets/).
 
 ## Roadmap
 

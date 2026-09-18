@@ -44,8 +44,17 @@ Runbook deploy (VPS, DNS, wildcard cert, lure đầu tiên):
 Vận hành hàng ngày + chuyển đổi phishlet:
 [docs/operations](https://dn9uy3n.github.io/fake-evilginx-pro/operations.html).
 
-> Phishlet chiến dịch (`src/phishlets/*.yaml`) được **gitignore chủ đích** — không bao giờ
-> ship kèm repo.
+> ⚠️ **Repo công khai KHÔNG kèm sẵn phishlet nào** — phishlet chiến dịch
+> (`src/phishlets/*.yaml`) được gitignore chủ đích, framework này không thể dùng
+> ngay để tấn công bất kỳ ai. Có chủ đích như vậy: phishlet dựng sẵn nhắm nhà cung
+> cấp danh tính thật dễ bị lợi dụng cho phishing trái phép.
+>
+> **Nhà nghiên cứu và red teamer được ủy quyền** có thể tự viết phishlet cho chiến
+> dịch trong phạm vi của mình bằng các tài nguyên kèm theo:
+> [`skills/creating-phishlets`](skills/creating-phishlets/SKILL.md) (skill tác giả
+> cho AI agent), [hướng dẫn soạn phishlet](https://dn9uy3n.github.io/fake-evilginx-pro/phishlet-authoring.html)
+> và bộ sinh (`tools/make_phishlet.py`), kèm ví dụ lab tại
+> [`examples/phishlets/`](examples/phishlets/).
 
 ## Roadmap
 
