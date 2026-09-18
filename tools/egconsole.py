@@ -344,6 +344,46 @@ class Console(cmd.Cmd):
         )
 
     # ---------- server ops (SSH) ----------
+    # ---------- MCP key ----------
+    def _mcp_key(self, regenerate=False):
+        import importlib.util as _ilu
+        _spec = _ilu.spec_from_file_location("egmcp_key", os.path.join(HERE, "mcp", "egmcp.py"))
+        _m = _ilu.module_from_spec(_spec)
+        _spec.loader.exec_module(_m)
+        KEY_FILE, new_mcp_key = _m.KEY_FILE, _m.new_key
+        import os as _os
+        key = new_mcp_key() if regenerate else None
+        if key is None:
+            if not _os.path.exists(KEY_FILE):
+                key = new_mcp_key()
+            else:
+                key = open(KEY_FILE, encoding="utf-8").read().strip()
+        import socket
+        host = socket.gethostbyname(socket.gethostname())
+        print(f"MCP API key : {key}")
+        print(f"Key file    : {KEY_FILE} (gitignored)")
+        print()
+        print("Agent configurations (fill in your repo path):")
+        print()
+        print("-- Claude Desktop / Claude Code (stdio, local — no key needed) --")
+        print(json.dumps({"mcpServers": {"fake-evilginx-pro": {
+            "command": "python",
+            "args": ["<REPO>/tools/mcp/egmcp.py"]}}}, indent=1))
+        print()
+        print("-- ZCode / Cursor (streamable-http + key) --")
+        print(json.dumps({"mcpServers": {"fake-evilginx-pro": {
+            "url": f"http://{host}:8306/mcp",
+            "headers": {"X-API-Key": key}}}}, indent=1))
+        print()
+        print("Serve HTTP mode first:  python tools/mcp/egmcp.py --http (127.0.0.1:8306)")
+        if regenerate:
+            print("\n[!] key regenerated — update every agent config that uses it")
+
+    def do_mcpkey(self, arg):
+        """mcpkey [new] — show the MCP API key + agent config snippets;
+        'mcpkey new' generates a NEW key"""
+        self._mcp_key(regenerate=arg.strip() == "new")
+
     def do_tail(self, arg):
         """tail [n] — journalctl evilginx2 trên VPS (n dòng, mặc định 30)"""
         n = arg if arg.isdigit() else "30"

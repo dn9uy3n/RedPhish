@@ -38,6 +38,9 @@ tools/api-certs-*/
 deploy/.env
 campaign-token*
 
+# MCP API key (egconsole mcpkey-new)
+tools/mcp/mcp.key
+
 # operator console SSH config (chứa IP/key path — dùng console.example.json làm mẫu)
 console.json
 

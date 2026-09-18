@@ -21,6 +21,7 @@ import http.client
 import json
 import os
 import re
+import secrets
 import ssl
 import subprocess
 import sys
@@ -373,6 +374,62 @@ def relay_open_session(capture_id: str, url: str = "", server: str = "") -> str:
             "; check the new Chrome window")
 
 
+# ============================================================ API key ======
+# The MCP API key gates the HTTP transport (remote agents). Local stdio runs
+# don't need it. Key file is gitignored; EG_MCP_API_KEY overrides it.
+KEY_FILE = os.path.join(HERE, "mcp.key")
+
+
+def load_or_create_key():
+    key = os.environ.get("EG_MCP_API_KEY")
+    if key:
+        return key
+    if os.path.exists(KEY_FILE):
+        return open(KEY_FILE, encoding="utf-8").read().strip()
+    return new_key()
+
+
+def new_key():
+    key = secrets.token_hex(16)
+    with open(KEY_FILE, "w", encoding="utf-8") as f:
+        f.write(key + "\n")
+    try:
+        os.chmod(KEY_FILE, 0o600)
+    except OSError:
+        pass
+    return key
+
+
+def _auth_asgi(app, api_key):
+    """ASGI wrapper: every HTTP request must carry X-API-Key (or Bearer)."""
+    async def wrapped(scope, receive, send):
+        if scope["type"] == "http":
+            headers = {k.decode().lower(): v.decode()
+                       for k, v in scope.get("headers", [])}
+            supplied = headers.get("x-api-key", "")
+            authz = headers.get("authorization", "")
+            if not supplied and authz.lower().startswith("bearer "):
+                supplied = authz[7:].strip()
+            if supplied != api_key:
+                body = b'{"error":"invalid or missing MCP API key"}'
+                await send({"type": "http.response.start", "status": 401,
+                            "headers": [[b"content-type", b"application/json"],
+                                        [b"content-length", str(len(body)).encode()]]})
+                await send({"type": "http.response.body", "body": body})
+                return
+        await app(scope, receive, send)
+    return wrapped
+
+
+def _run_http(host, port):
+    api_key = load_or_create_key()
+    app = _auth_asgi(mcp.streamable_http_app(), api_key)
+    import uvicorn
+    print(f"[egmcp] streamable-http on http://{host}:{port}/mcp "
+          f"(X-API-Key required; key file: {KEY_FILE})", flush=True)
+    uvicorn.run(app, host=host, port=port, log_level="warning")
+
+
 # ============================================================ worker mode ===
 def _worker_open_session(args):
     """Detached worker: evilginx session -> session_launcher (real Chrome)."""
@@ -417,13 +474,19 @@ def main():
     ap.add_argument("--url", default="")
     ap.add_argument("--chrome", default="")
     ap.add_argument("--headless", action="store_true")
+    ap.add_argument("--http", action="store_true",
+                    help="serve streamable-http instead of stdio (API key required)")
+    ap.add_argument("--host", default=os.environ.get("EG_MCP_HOST", "127.0.0.1"))
+    ap.add_argument("--port", type=int, default=int(os.environ.get("EG_MCP_PORT", "8306")))
     args = ap.parse_args()
     if args.open_session:
         _worker_open_session(args)
     elif args.relay_open:
         _worker_relay_open(args)
+    elif args.http:
+        _run_http(args.host, args.port)
     else:
-        mcp.run()  # stdio MCP server
+        mcp.run()  # stdio MCP server (local, no key needed)
 
 
 if __name__ == "__main__":

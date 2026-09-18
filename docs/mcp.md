@@ -42,9 +42,36 @@ Reuses the console node list **`tools/my-servers.json`**:
   `ssh -N -L 9445:127.0.0.1:9445 <user>@<node>`.
 - Env: `EG_MCP_SERVERS` (alternate config path), `EG_MCP_DEFAULT_SERVER` (default node).
 
+## The MCP API key
+
+Two transports, one key rule:
+
+- **stdio (local)** — the agent spawns `egmcp.py` as a child process on the same
+  machine. No key needed: process-local trust.
+- **streamable-http (remote)** — serve with `python tools/mcp/egmcp.py --http`
+  (default `127.0.0.1:8306/mcp`). **Every request must carry the API key** as
+  `X-API-Key: <key>` (or `Authorization: Bearer <key>`); anything else gets 401.
+
+### Getting / rotating the key (from egconsole)
+
+```
+eg> mcpkey           # show the key + ready-made agent config snippets
+eg> mcpkey new       # generate a NEW key (rotates tools/mcp/mcp.key)
+```
+
+The key lives in `tools/mcp/mcp.key` (gitignored, 0600); `EG_MCP_API_KEY` env
+overrides the file. Rotating invalidates every agent config still holding the
+old key — update them (the `mcpkey` output gives you copy-paste snippets with
+the key already filled in).
+
+Env for the HTTP transport: `EG_MCP_HOST` (bind — default loopback; set only
+behind a tunnel/firewall), `EG_MCP_PORT` (default 8306).
+
 ## Registering with agents
 
-**Claude Desktop / Claude Code** (`claude_desktop_config.json` / `.mcp.json`):
+### Claude Desktop / Claude Code (stdio, local)
+
+`claude_desktop_config.json` (Desktop) or `.mcp.json` (Code):
 
 ```json
 { "mcpServers": { "fake-evilginx-pro": {
@@ -53,10 +80,45 @@ Reuses the console node list **`tools/my-servers.json`**:
     "env": { "EG_MCP_DEFAULT_SERVER": "vps-node-1" } } } }
 ```
 
-**ZCode** — same stdio shape in the MCP config. Verify from the agent with a plain
-"list my evilginx servers" (calls `servers_list`).
+Claude Code also accepts it straight on the command line:
+`claude mcp add fake-evilginx-pro -- python <REPO>/tools/mcp/egmcp.py`.
+Verify from the chat: "list my evilginx servers" (calls `servers_list`).
+
+### Cursor (`.cursor/mcp.json`)
+
+stdio on the same machine:
+
+```json
+{ "mcpServers": { "fake-evilginx-pro": {
+    "command": "python",
+    "args": ["<REPO>/tools/mcp/egmcp.py"] } } }
+```
+
+or streamable-http from another machine (serve `--http` first):
+
+```json
+{ "mcpServers": { "fake-evilginx-pro": {
+    "url": "http://<egmcp-host>:8306/mcp",
+    "headers": { "X-API-Key": "<key from: egconsole mcpkey>" } } } }
+```
+
+### ZCode
+
+Same two shapes in the ZCode MCP config — stdio (`command`/`args`) for a local
+server, or the streamable-http entry (`url` + `headers: {"X-API-Key": …}`) for
+the networked one. `EG_MCP_DEFAULT_SERVER` in the server's env selects the node.
+
+### ChatGPT (Connectors / MCP)
+
+ChatGPT only reaches **remote** MCP servers over public HTTPS — stdio and
+plain-HTTP LAN endpoints won't work. Expose the HTTP transport through an
+authenticated tunnel (cloudflared / ngrok / an SSH reverse tunnel with TLS) and
+register the resulting `https://…/mcp` URL as a connector, using the API key as
+the connector's auth token. Keep the tunnel scoped to the campaign and tear it
+down afterwards — this is an internet-reachable path to your node controls.
 
 ## Tools
+
 
 ### Node & phishlets
 
@@ -121,8 +183,9 @@ All node tools take an optional `server` argument for multi-node fleets.
 
 - The MCP process runs on the **operator workstation** and holds the client certs —
   never register it on shared machines.
-- stdio transport only: the agent talks to the server over its own process pipe; nothing
-  listens on the network.
+- stdio transport: the agent talks to the server over its own process pipe; nothing
+  listens on the network. The HTTP transport is key-gated (`X-API-Key`) — bind it to
+  loopback or a tunnel, never expose it bare to the internet.
 - `open_session` / `relay_open_session` put **live victim sessions** on your desktop —
   close the windows when done.
 - Relay tunnel + `op_key` are operator-side secrets; the sidecar only accepts
