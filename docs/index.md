@@ -21,10 +21,12 @@ re-implementing Evilginx Pro-class features for internal / air-gapped environmen
 |---|---|
 | [Architecture](architecture.md) | Request lifecycle, module map, deploy topology — the maintainer's map |
 | [Getting started](getting-started.md) | Build, deploy to a VPS, DNS + wildcard cert, first lure — the shortest path to a working node |
+| [Evasion](evasion.md) | Every integrated evasion technique by defense layer — token-gate, botguard, CSD, uTLS, relay, infra — all field-verified |
 | [Operations guide](operations.md) | Day-2 operations: the `egconsole` command reference, phishlet switching, lure lifecycle, session & cookie export, mailbox reuse |
 | [Phishlet authoring](phishlet-authoring.md) | Writing phishlets: structure, auth-token capture, sub-filters, multi-domain rules, CSD hardening, token-gate |
 | [Google real-browser relay](google-relay.md) | The `bgrelay` sidecar that defeats origin-bound botguard: architecture, API, capture pipeline, session replay |
 | [Upstream proxy](proxy.md) | Feature #17 — per-phishlet egress routing (residential exits, datacenter blocks) |
+| [egconsole](egconsole.md) | The remote operator interface — full command reference, workflows, quirks |
 | [mTLS API reference](api.md) | The hidden HTTPS API: phishlets, lures, sessions, proxy, relay |
 | [Troubleshooting](troubleshooting.md) | Field-proven gotchas: botguard decoys, DNS wildcard rules, cookie import, zombie chromium, IP reputation |
 | [Phishlet status & features](FEATURES.md) | The full Pro-parity feature matrix |

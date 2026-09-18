@@ -78,7 +78,7 @@
     {% assign cur = page.url %}
     <a class="item {% if cur == site.baseurl or cur == site.baseurl + '/' or cur == '/' %}cur{% endif %}"
        href="{{ site.baseurl }}/">Home</a>
-    {% assign items = "architecture|Architecture;getting-started|Getting started;operations|Operations;phishlet-authoring|Phishlet authoring;google-relay|Google real-browser relay;proxy|Upstream proxy;api|mTLS API;mcp|MCP server;troubleshooting|Troubleshooting" | split: ";" %}
+    {% assign items = "architecture|Architecture;evasion|Evasion;getting-started|Getting started;operations|Operations;egconsole|egconsole;phishlet-authoring|Phishlet authoring;google-relay|Google real-browser relay;proxy|Upstream proxy;api|mTLS API;mcp|MCP server;troubleshooting|Troubleshooting" | split: ";" %}
     {% for it in items %}
       {% assign parts = it | split: "|" %}
       <a class="item {% if cur contains parts[0] %}cur{% endif %}"
