@@ -4,6 +4,21 @@ Forked from [evilginx2 CE 3.3.0](https://github.com/kgretzky/evilginx2) (upstrea
 commit `4c0988a`). Every extension is clean-room (no reference to commercial
 binaries) and verified end-to-end on the two-node lab (Kali + Ubuntu).
 
+## v0.11.2 (2026-09-18) — relay exit pool + capture auto-import + detect_check
+
+- **Relay exit pool**: RELAY_SOCKS accepts a comma-separated list of residential
+  exits; the HTTP→SOCKS bridge rotates to the next healthy exit after ≥3
+  consecutive failures (30-min cooldown per exit). Single-exit deployments
+  unchanged. New `GET /api/pool` (X-Op-Key) shows per-exit health.
+- **Capture auto-import**: on relay capture completion, bgrelay POSTs the result
+  to the new `POST /sessions/import` API endpoint (mTLS loopback) — the capture
+  immediately appears in `sessions` with credentials + cookies, enabling
+  one-click `open <id>` / MCP `open_session`.
+- **Detection self-check**: `tools/detect_check.sh <host> <path> <token> [node]`
+  automates DNS/cert/botguard-decoy/render checks and prints manual Safe Browsing
+  instructions. Works from Git Bash (nslookup fallback, SSH_KEY env for the
+  render check).
+
 ## v0.11.1 (2026-09-18) — per-phishlet botguard JA4 exceptions
 
 - **`bg_ja4_allow`** (optional list in phishlet YAML): JA4 prefixes whitelisted

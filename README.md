@@ -66,17 +66,17 @@ Done:
 - [x] CSD hardening — Chrome client-side detection bypass (field-verified)
 - [x] Upstream proxy with per-domain-suffix routing (#17)
 - [x] Google real-browser relay (#18) — ms365 + google both production-ready
+- [x] Relay exit pool + cooldown rotation (comma-separated RELAY_SOCKS)
+- [x] Relay captures auto-import into the session store (one-click open)
+- [x] Automated detection self-checks (`tools/detect_check.sh`)
 - [x] Per-phishlet JA4 exceptions — `bg_ja4_allow` in phishlet YAML, merged with `-bg-ja4`
 - [x] MCP server for AI-agent operation + agent skills (`skills/`)
 - [x] Documentation site ([dn9uy3n.github.io/fake-evilginx-pro](https://dn9uy3n.github.io/fake-evilginx-pro/))
 
 Next:
 
-- [ ] Relay: automatic residential-exit rotation + cooldown handling (proxy pool)
-- [ ] Relay captures auto-import into the console session store (one-click mailbox open)
 - [ ] Fleet console — unified multi-node view (sessions + lures across nodes)
 - [ ] HTTP/2 Akamai TLS fingerprint for botguard
-- [ ] Automated detection self-checks on burner domains
 
 Deferred (not a current threat-model blocker):
 

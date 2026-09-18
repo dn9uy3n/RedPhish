@@ -70,7 +70,7 @@ Notes:
 ## Sessions
 
 ```text
-sessions                  list captured sessions (id, phishlet, user, cookie counts)
+sessions                  list captured sessions (MITM + relay captures auto-imported)
 session <id>              detail: captured tokens/cookies per domain
 session_del <id>          delete a session
 export <id> [file]        export session (cookies + meta) to JSON
@@ -116,6 +116,13 @@ Relay-specific ops (capture inspection, session replay, self-testing) are docume
 [google-relay](google-relay.md). The golden rule: **self-test renders only** — never submit
 fake credentials through the relay against Google; dozens of submissions burn the
 residential exit's reputation ("This browser or app may not be secure") for 30–60 min.
+
+## Pre-campaign detection check
+
+
+
+Automates DNS resolution, TLS cert, botguard decoy, and the trusted-loopback
+render; prints instructions for the manual Safe Browsing check.
 
 ## Changing source code (deploy flow)
 

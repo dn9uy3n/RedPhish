@@ -66,17 +66,17 @@ Vận hành hàng ngày + chuyển đổi phishlet:
 - [x] CSD hardening — bypass Chrome client-side detection (verify thực chiến)
 - [x] Upstream proxy routing theo suffix domain (#17)
 - [x] Google real-browser relay (#18) — ms365 + google cùng production-ready
+- [x] Relay exit pool + xoay cooldown (RELAY_SOCKS nhiều exit cách nhau dấu phẩy)
+- [x] Auto-import capture relay vào session store (mở 1 click)
+- [x] Detection self-check tự động (`tools/detect_check.sh`)
 - [x] Ngoại lệ JA4 theo phishlet — `bg_ja4_allow` trong YAML, gộp với `-bg-ja4` cấp node
 - [x] MCP server cho AI agent + bộ skill agent (`skills/`)
 - [x] Trang tài liệu ([dn9uy3n.github.io/fake-evilginx-pro](https://dn9uy3n.github.io/fake-evilginx-pro/))
 
 Kế tiếp:
 
-- [ ] Relay: tự xoay residential exit + xử lý cooldown (proxy pool)
-- [ ] Auto-import capture relay vào session store của console (mở mailbox 1 click)
 - [ ] Console fleet — xem thống nhất nhiều node (sessions + lures cross-node)
 - [ ] HTTP/2 Akamai TLS fingerprint cho botguard
-- [ ] Tự động hoá detection self-check trên burner domain
 
 Trì hoãn (không phải blocker của threat model hiện tại):
 
