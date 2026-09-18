@@ -74,10 +74,19 @@ Kế tiếp:
 
 - [ ] Relay: tự xoay residential exit + xử lý cooldown (proxy pool)
 - [ ] Auto-import capture relay vào session store của console (mở mailbox 1 click)
-- [ ] Evilpuppet e2e — browser telemetry sidecar (quirk DNS chromium trên node lab)
-- [ ] HTTP/2 Akamai TLS fingerprint cho botguard
 - [ ] Console fleet — xem thống nhất nhiều node (sessions + lures cross-node)
+- [ ] HTTP/2 Akamai TLS fingerprint cho botguard
 - [ ] Tự động hoá detection self-check trên burner domain
+
+Trì hoãn (không phải blocker của threat model hiện tại):
+
+- [ ] Evilpuppet e2e — browser telemetry sidecar cho hệ ML detection lớp
+  Sentinel/Abnormal. Code hiện có (session riêng, không link victim, không mô phỏng
+  mouse/typing) không cộng năng lực gì trên nền relay (#18) + MITM (ms365) + JS
+  telemetry (botguard v2) đã production. Quay lại khi target flag session sau login
+  dù cookies đúng (tín hiệu Sentinel).
+- [ ] Evilpuppet đúng nghĩa — /visit endpoint + AES linkage session_token + mô phỏng
+  tương tác; chỉ build khi use-case Sentinel/Abnormal xuất hiện thực tế.
 
 ## Credits & license
 

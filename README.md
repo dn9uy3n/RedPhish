@@ -74,10 +74,19 @@ Next:
 
 - [ ] Relay: automatic residential-exit rotation + cooldown handling (proxy pool)
 - [ ] Relay captures auto-import into the console session store (one-click mailbox open)
-- [ ] Evilpuppet e2e — sidecar browser telemetry (chromium DNS quirk on the lab node)
-- [ ] HTTP/2 Akamai TLS fingerprint for botguard
 - [ ] Fleet console — unified multi-node view (sessions + lures across nodes)
+- [ ] HTTP/2 Akamai TLS fingerprint for botguard
 - [ ] Automated detection self-checks on burner domains
+
+Deferred (not a current threat-model blocker):
+
+- [ ] Evilpuppet e2e — sidecar browser telemetry for Sentinel/Abnormal-class ML
+  detection. The shipped code (own session, no victim linkage, no mouse/typing
+  simulation) adds no capability over the relay (#18) + MITM (ms365) + JS
+  telemetry (botguard v2) already in production. Revisit when a target flags
+  sessions post-login despite correct cookies (the Sentinel signal).
+- [ ] Evilpuppet proper — /visit endpoint + AES session_token linkage +
+  interaction simulation; build only if the Sentinel/Abnormal use-case materializes.
 
 ## Credits & license
 
