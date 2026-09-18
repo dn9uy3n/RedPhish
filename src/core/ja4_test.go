@@ -197,3 +197,33 @@ func TestJA4GoNoALPN(t *testing.T) {
 		t.Errorf("go: JA4 prefix wrong")
 	}
 }
+
+func TestJA4PrefixMatch(t *testing.T) {
+	list := []string{"t13d15", "t13d1310c009130100"}
+	if !ja4PrefixMatch("t13d1516_abc_def", list) {
+		t.Errorf("family prefix should match")
+	}
+	if !ja4PrefixMatch("t13d1310c009130100_d648_x", list) {
+		t.Errorf("full variant prefix should match")
+	}
+	if ja4PrefixMatch("t13d1311c009130100_x_y", list) {
+		t.Errorf("one-digit-off variant must NOT match")
+	}
+	if ja4PrefixMatch("t13d999", nil) || ja4PrefixMatch("t13d999", []string{}) {
+		t.Errorf("empty list must never match")
+	}
+}
+
+func TestPhishletJA4Allow(t *testing.T) {
+	p := &Phishlet{bgJA4Allow: []string{"t13d1310c009130100"}}
+	if !p.IsJA4Allowed("t13d1310c009130100_beef_cafe") {
+		t.Errorf("phishlet exception should match its prefix")
+	}
+	if p.IsJA4Allowed("t12d2107c02c000a00_x_y") {
+		t.Errorf("phishlet exception must not match other fingerprints")
+	}
+	empty := &Phishlet{}
+	if empty.IsJA4Allowed("t13d1310c009130100_beef_cafe") {
+		t.Errorf("phishlet without exceptions must never match")
+	}
+}

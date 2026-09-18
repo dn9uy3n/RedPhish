@@ -66,12 +66,12 @@ Vận hành hàng ngày + chuyển đổi phishlet:
 - [x] CSD hardening — bypass Chrome client-side detection (verify thực chiến)
 - [x] Upstream proxy routing theo suffix domain (#17)
 - [x] Google real-browser relay (#18) — ms365 + google cùng production-ready
+- [x] Ngoại lệ JA4 theo phishlet — `bg_ja4_allow` trong YAML, gộp với `-bg-ja4` cấp node
 - [x] MCP server cho AI agent + bộ skill agent (`skills/`)
 - [x] Trang tài liệu ([dn9uy3n.github.io/fake-evilginx-pro](https://dn9uy3n.github.io/fake-evilginx-pro/))
 
 Kế tiếp:
 
-- [ ] Ngoại lệ JA4 theo phishlet — tùy chọn `bg_ja4_allow` trong YAML (biến thể TLS-inspection của mạng công ty), gộp với allowlist cấp node `-bg-ja4`
 - [ ] Relay: tự xoay residential exit + xử lý cooldown (proxy pool)
 - [ ] Auto-import capture relay vào session store của console (mở mailbox 1 click)
 - [ ] Evilpuppet e2e — browser telemetry sidecar (quirk DNS chromium trên node lab)

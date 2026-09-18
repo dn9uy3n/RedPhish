@@ -51,12 +51,14 @@ dead-boring to security appliances.
 
 - Where: `src/core/botguard.go`, `ja4.go`; flags `-botguard -bg-ja4 <prefixes>
   -bg-trusted <cidrs>`
-- **Corporate TLS-inspection caveat (field-proven)**: an SWG (Umbrella, Palo
-  Alto) re-terminates TLS, so the node sees the *appliance's* JA4, not Chrome's.
-  Each inspection profile yields a distinct but stable variant
-  (`t13d1311c009130100` vs `t13d1310c009130100` — one digit apart). Add the
-  variant you observe in `journalctl` to `-bg-ja4`. Planned: per-phishlet
-  `bg_ja4_allow` option (roadmap).
+- **Corporate TLS-inspection (field-proven)**: an SWG (Umbrella, Palo Alto)
+  re-terminates TLS, so the node sees the *appliance's* JA4, not Chrome's. Each
+  inspection profile yields a distinct but stable variant
+  (`t13d1311c009130100` vs `t13d1310c009130100` — one digit apart). Two ways to
+  allowlist a variant: the node-level `-bg-ja4` flag (applies to every phishlet,
+  needs a unit edit + restart) or the per-phishlet `bg_ja4_allow` list in the
+  phishlet YAML (OR-merged, hot-reload applies immediately). Read the variant
+  from `journalctl` (`JA4 not in allowlist`).
 - Self-testing rule: render-tests go through trusted loopback
   (`--resolve host:443:127.0.0.1`) — your curl will otherwise eat the decoy and
   you'll think the phishlet is broken.

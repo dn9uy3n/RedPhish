@@ -4,6 +4,19 @@ Forked from [evilginx2 CE 3.3.0](https://github.com/kgretzky/evilginx2) (upstrea
 commit `4c0988a`). Every extension is clean-room (no reference to commercial
 binaries) and verified end-to-end on the two-node lab (Kali + Ubuntu).
 
+## v0.11.1 (2026-09-18) — per-phishlet botguard JA4 exceptions
+
+- **`bg_ja4_allow`** (optional list in phishlet YAML): JA4 prefixes whitelisted
+  for that phishlet only, OR-merged with the node-level `-bg-ja4` allowlist at
+  scoring time. Built for corporate TLS-inspection variants (each SWG profile
+  yields a distinct but stable fingerprint) — add the variant observed in the
+  journal, hot-reload applies immediately (no unit edit, no restart).
+- A phishlet-exception match logs `JA4 allowed by phishlet exception (<name>)`;
+  unknown JA4s still score +50 when either list is configured.
+- Shared matcher `ja4PrefixMatch` + `Phishlet.IsJA4Allowed`; unit tests for both.
+- Field-verified on the node: exception match → full login render; variant
+  removed → decoy again; node-level list unchanged.
+
 ## v0.11 (2026-09-17) — restructure for maintainability
 
 - **Go**: `http_proxy.go` (2327 lines) split into topical files in the same package —

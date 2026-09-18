@@ -66,12 +66,12 @@ Done:
 - [x] CSD hardening — Chrome client-side detection bypass (field-verified)
 - [x] Upstream proxy with per-domain-suffix routing (#17)
 - [x] Google real-browser relay (#18) — ms365 + google both production-ready
+- [x] Per-phishlet JA4 exceptions — `bg_ja4_allow` in phishlet YAML, merged with `-bg-ja4`
 - [x] MCP server for AI-agent operation + agent skills (`skills/`)
 - [x] Documentation site ([dn9uy3n.github.io/fake-evilginx-pro](https://dn9uy3n.github.io/fake-evilginx-pro/))
 
 Next:
 
-- [ ] Per-phishlet JA4 exceptions — a `bg_ja4_allow` option in phishlet YAML (corporate TLS-inspection variants), merged with the node-level `-bg-ja4` allowlist
 - [ ] Relay: automatic residential-exit rotation + cooldown handling (proxy pool)
 - [ ] Relay captures auto-import into the console session store (one-click mailbox open)
 - [ ] Evilpuppet e2e — sidecar browser telemetry (chromium DNS quirk on the lab node)

@@ -48,6 +48,11 @@ Three distinct causes, check the logs:
 3. **Datacenter IP on the lookup** — route Google through a residential exit
    ([proxy](proxy.md)).
 
+For "bot detected" with a browser UA: read the JA4 in the log line. If it's a
+corporate TLS-inspection variant, add it to the phishlet's `bg_ja4_allow` list
+(YAML, hot-reload) or the node-level `-bg-ja4` flag — see
+[evasion](evasion#2-botguard-anti-bot).
+
 ## Symptom: two phishlets redirect into each other's flows
 
 **Duplicate `phish_sub` across enabled phishlets on one base domain.** The host→phishlet
