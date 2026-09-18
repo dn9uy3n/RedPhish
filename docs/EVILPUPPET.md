@@ -4,52 +4,57 @@ title: Evilpuppet
 description: Sidecar browser telemetry design + status.
 ---
 
-# EVILPUPPET_DESIGN.md — thiết kế Evilpuppet-lite cho evilginx2-extended (#5)
+# Evilpuppet design — for evilginx2-extended (#5)
 
-**Trạng thái:** UNBLOCKED (headless Chromium chạy tốt trên node Ubuntu; Kali VM vẫn treo) ·
-**Triển khai:** deferred — cần 1 đợt làm việc riêng sau Wave 4.
+**Status:** UNBLOCKED (headless Chromium runs fine on the Ubuntu node; the Kali
+VM still hangs) · **Implementation:** deferred — needs a dedicated work session.
 
-## Mục tiêu (theo mô tả công khai của Pro)
+## Goal (per public Pro descriptions)
 
-Browser thật chạy nền trên server tạo ra **browser telemetry hợp lệ** để session
-phishing có dấu vân vân máy-học giống victim thật — qua mặt các hệ thống phát hiện
-dựa trên telemetry (device fingerprint, handler ordering, client hints...).
+A real browser running on the server produces **valid browser telemetry** so the
+phishing session carries machine-learning fingerprints like a real victim —
+defeating detection systems based on telemetry (device fingerprinting, handler
+ordering, client hints…).
 
-## Kiến trúc clean-room (không tham chiếu binary Pro)
+## Clean-room architecture (no reference to the Pro binary)
 
 ```
-[evilginx2-extended]  <--HTTP nội bộ-->  [puppet sidecar: chromedp]
+[evilginx2-extended]  <--internal HTTP-->  [puppet sidecar: chromedp]
         |                                        |
-        |                          điều khiển Chromium thật (headless)
+        |                          drives a real (headless) Chromium
         v
-   origin thật (nhận traffic + telemetry của chromium)
+   real origin (receives the chromium's traffic + telemetry)
 ```
 
-1. **Sidecar** `puppet/` (Go + chromedp): nhận tác vụ qua HTTP nội bộ
-   `POST /visit {url, session_token, wait_ms}` — chạy Chromium truy cập trang
-   login thật **trong khi victim cũng đang được proxy** — telemetry (TLS JA3 của
-   Chromium, HTTP/2 SETTINGS, handler ordering, client hints) đi thẳng tới origin
-   gắn với cùng session.
-2. **Liên kết session**: evilginx2 gắn `session_token` vào URL victim (đã có cơ chế
-   AES params #11); sidecar dùng cùng token → origin thấy 2 "người dùng" cùng
-   session: victim (qua proxy) + puppet (browser thật).
-3. **Cookie pre-warm**: puppet đăng nhập TRƯỚC bằng tài khoản bot của org (nếu
-   chiến dịch cho phép) hoặc chỉ warm-up trang tĩnh; cookie hợp lệ được export về
-   evilginx2 qua endpoint nội bộ `POST /pp/cookies` (mTLS như API).
-4. **Lưu ý an toàn**: puppet chỉ chạy với origin = mục tiêu đã được ủy quyền trong
-   kế hoạch campaign; mọi request puppet đi qua cùng containment zero-egress.
+1. **Sidecar** `puppet/` (Go + chromedp): receives tasks over internal HTTP —
+   `POST /visit {url, session_token, wait_ms}` — drives Chromium to the real
+   login page **while the victim is being proxied**, so the telemetry (the
+   Chromium's TLS JA3, HTTP/2 SETTINGS, handler ordering, client hints) reaches
+   the origin under the same session.
+2. **Session linkage:** evilginx2 embeds the `session_token` in the victim URL
+   (the AES params mechanism, #11); the sidecar uses the same token → the origin
+   sees two "users" on one session: the victim (through the proxy) and the
+   puppet (a real browser).
+3. **Cookie pre-warm:** the puppet logs in FIRST with an org bot account (when
+   the campaign allows) or just warms static pages; valid cookies are exported
+   back to evilginx2 through the internal `POST /pp/cookies` endpoint (mTLS,
+   like the API).
+4. **Safety note:** the puppet only runs against origins explicitly authorized
+   in the campaign plan; all puppet traffic goes through the same zero-egress
+   containment.
 
-## Tại sao defer
+## Why deferred
 
-- Cần chromedp + sub-deps (network install `go get` trên node có internet — Ubuntu
-  node hiện đã có internet ổn định sau fix DNS).
-- Kỹ thuật đã có sẵn: headless Chromium hoạt động trên Ubuntu (verify LAB15),
-  fleet API có thể host endpoint /pp/, jsobf có thể obfuscate cả trang trung gian.
-- Ước lượng: 1 đợt làm việc (sidecar + endpoint + verify e2e bằng cả curl lẫn
-  chromium).
+- Needs chromedp + sub-deps (`go get` network install — the Ubuntu node has had
+  stable internet since the DNS fix).
+- Everything else is in place: headless Chromium verified on Ubuntu (LAB15),
+  the fleet API can host the `/pp/` endpoint, jsobf can obfuscate the
+  intermediate page.
+- Estimate: one focused work session (sidecar + endpoint + e2e verification
+  with both curl and chromium).
 
-## Khi nào làm
+## When to build it
 
-Ngay sau khi campaign xác nhận cần chống lại hệ thống phát hiện dựa trên telemetry
-(Sentinel/Abnormal-class). Nếu mục tiêu chỉ có email-gateway + MFA thông thường →
-không cần #5.
+As soon as a campaign confirms it needs to beat telemetry-based detection
+(Sentinel/Abnormal-class). If the target only has an email gateway + ordinary
+MFA → #5 is not needed.

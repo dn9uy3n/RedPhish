@@ -106,16 +106,16 @@ All node tools take an optional `server` argument for multi-node fleets.
 
 ## Example session (what the agent actually does)
 
-> **Operator:** "Mở hộp thư Gmail của session mới nhất."
+> **Operator:** "Open the Gmail inbox for the newest session."
 >
 > **Agent:** `relay_sessions` → picks the newest capture → `relay_open_session <id>`
-> → "Đã mở Chrome đăng nhập với boyhoang37@gmail.com (Hộp thư đến (52))."
+> → "Chrome opened, signed in as boyhoang37@gmail.com (Inbox (52))."
 
-> **Operator:** "Tạo lure google mới trỏ về mail.google.com rồi cho tôi URL."
+> **Operator:** "Create a new google lure pointing at mail.google.com and give me the URL."
 >
 > **Agent:** `lure_create phishlet=google redirect_url=https://mail.google.com` →
 > `lure_url <id>` → returns `https://<host>/<path>` **plus a reminder to append the
-> `?t=` token** (which the agent fetches from the lure record — and should not log).
+> `?t=` token** (which the agent fetches from the lure record — and must not log it).
 
 ## Security notes
 

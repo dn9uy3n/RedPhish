@@ -1,58 +1,58 @@
 # tools/
 
-Toàn bộ toolchain vận hành của fake-evilginx-pro. Cấu trúc v0.11 (xem
-`docs/architecture.md` cho bản đồ tổng thể):
+The complete operator toolchain of fake-evilginx-pro. v0.11 layout (see
+`docs/architecture.md` for the full map):
 
 ```
 tools/
-├── lib/            thư viện dùng chung (một nguồn duy nhất — import từ đây)
-├── egconsole.py    operator REPL (console chính)
+├── lib/            shared library (the single source — import from here)
+├── egconsole.py    operator REPL (the main console)
 ├── egctl.py        one-shot fleet CLI
-├── mcp/            MCP server cho AI agent (Claude/ZCode)
-├── relay/          bgrelay sidecar (Google real-browser relay) + trang victim
-├── lab/            môi trường lab tự dựng
-├── patches/        HISTORICAL — cách tạo fork ban đầu (frozen)
+├── mcp/            MCP server for AI agents (Claude/ZCode)
+├── relay/          bgrelay sidecar (Google real-browser relay) + victim page
+├── lab/            self-hosted lab environment
+├── patches/        HISTORICAL — how the fork was first built (frozen)
 └── authoring kit   make_phishlet / make_dns_zone / mint_internal_cert / deploy_offline / ja3
 ```
 
-## lib/ — thư viện dùng chung
+## lib/ — shared library
 
-| File | Chức năng |
+| File | Role |
 |------|-----------|
-| `lib/egapi.py` | **MTLS API client duy nhất** + node list (`my-servers.json`, bare array). egconsole/egctl/egmcp đều import từ đây — không tự viết client mới. |
-| `lib/cookies.py` | Cookie extraction → playwright (2 semantics đã verify qua tham số `samesite`/`force_secure`) + Cookie-Editor export |
-| `lib/session_launcher.py` | Mở Chrome/Edge thật đã đăng nhập bằng cookies session (`launch_with_cookies` + CLI; `__Host-` qua url theo RFC 6265bis) |
+| `lib/egapi.py` | **The ONE mTLS API client** + node list (`my-servers.json`, bare array). egconsole/egctl/egmcp all import from here — never write another client. |
+| `lib/cookies.py` | Cookie extraction → playwright (both verified semantics via the `samesite`/`force_secure` params) + Cookie-Editor export |
+| `lib/session_launcher.py` | Opens a real Chrome/Edge signed in with session cookies (`launch_with_cookies` + CLI; `__Host-` cookies via url per RFC 6265bis) |
 
-## Tools chính
+## Main tools
 
-| Tool | Chức năng | Ví dụ |
+| Tool | Role | Example |
 |------|-----------|-------|
-| `egconsole.py` | **Operator console** — REPL điều khiển node qua mTLS API (phishlets, lures, sessions, proxy, export, open) | `python egconsole.py` → `help` |
+| `egconsole.py` | **Operator console** — REPL driving the node over the mTLS API (phishlets, lures, sessions, proxy, export, open) | `python egconsole.py` → `help` |
 | `egctl.py` | One-shot fleet CLI | `python egctl.py my-servers.json status` |
-| `mcp/egmcp.py` | MCP server (27 tools) cho AI agent — đọc `tools/mcp/requirements.txt` | xem `docs/mcp.md` |
+| `mcp/egmcp.py` | MCP server (27 tools) for AI agents — see `tools/mcp/requirements.txt` | xem `docs/mcp.md` |
 | `make_phishlet.py` | Sinh phishlet YAML + lint (authoring kit) | `python make_phishlet.py --name m1 --phish-domain lab.test --orig-host portal.lab.test --cookie SESS` |
-| `mint_internal_cert.sh` | Internal CA + cert cho hostname (thay ACME, zero egress, không CT-log) | `./mint_internal_cert.sh www.lab.test lab.test` |
-| `deploy_offline.sh` | Auto-deploy fork lên host nội bộ qua SSH + systemd | `./deploy_offline.sh 192.168.1.50 ubuntu pass /tmp/src.tar.gz` |
-| `make_dns_zone.py` | Sinh dnsmasq zone cho phish domain (DNS nội bộ đa máy) | `python make_dns_zone.py --domain lab.test --ip 192.168.1.10` |
-| `ja3.py` | JA3 md5 calculator từ pipe tshark (audit TLS fingerprint) | xem `docs/BLUE_TEAM_IOC.md` |
+| `mint_internal_cert.sh` | Internal CA + certs for hostnames (replaces ACME, zero egress, no CT logs) | `./mint_internal_cert.sh www.lab.test lab.test` |
+| `deploy_offline.sh` | Auto-deploy the fork to internal hosts over SSH + systemd | `./deploy_offline.sh 192.168.1.50 ubuntu pass /tmp/src.tar.gz` |
+| `make_dns_zone.py` | Generate a dnsmasq zone for the phish domain (internal multi-host DNS) | `python make_dns_zone.py --domain lab.test --ip 192.168.1.10` |
+| `ja3.py` | JA3 md5 calculator piped from tshark (TLS-fingerprint auditing) | xem `docs/BLUE_TEAM_IOC.md` |
 
-Config operator (gitignored): `my-servers.json` (node + cert + relay block),
-`console.json` (SSH cho `tail`/`puppet`), `servers.example.json` (mẫu format).
+Operator config (gitignored): `my-servers.json` (node + certs + relay block),
+`console.json` (SSH for `tail`/`puppet`), `servers.example.json` (format template).
 
-## lab/ — môi trường lab tự dựng
+## lab/ — self-hosted lab environment
 
-| File | Chức năng |
+| File | Role |
 |------|-----------|
-| `testsite.py` | Origin mô phỏng: HTTPS login (127.0.0.2:443), cert tự sinh, log request |
-| `webhook_rx.py` | Receiver :9090 ghi JSON creds từ `-webhook` vào `webhook_rx.log` |
-| `verify_bg2.py` | Verifier Botguard v2 (probe decode + gating flow) |
-| `test_jsobf_decode.py` | Decode payload ultra string-array (chứng minh round-trip) |
+| `testsite.py` | Simulated origin: HTTPS login (127.0.0.2:443), self-signed cert, request log |
+| `webhook_rx.py` | :9090 receiver logging `-webhook` credential JSON to `webhook_rx.log` |
+| `verify_bg2.py` | Botguard v2 verifier (probe decoding + gating flow) |
+| `test_jsobf_decode.py` | Decodes ultra string-array payloads (round-trip proof) |
 
-Lưu ý: `testsite.py`/`webhook_rx.py` tự定位 BASE theo `$HOME/evilginx2-lab` —
-đổi bằng biến môi trường hoặc sửa hằng nếu đặt chỗ khác.
+Note: `testsite.py`/`webhook_rx.py` locate their BASE via `$HOME/evilginx2-lab` —
+override with an env var or edit the constant if placed elsewhere.
 
 ## patches/ — HISTORICAL (frozen)
 
-Bộ patch scripts đã dùng để tạo fork ban đầu (2026-09). **Không phải nguồn sự
-thật** — sửa code trực tiếp trong `src/`. Xem `patches/README.md` cho ngữ cảnh
-và quy trình re-derive từ upstream nếu cần.
+The patch scripts used to build the fork originally (2026-09). **Not the source
+of truth** — edit `src/` directly. See `patches/README.md` for context and the
+re-derive-from-upstream procedure if ever needed.

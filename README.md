@@ -61,7 +61,7 @@ Done:
 
 Next:
 
-- [ ] Tùy chọn `bg_ja4_allow` trong phishlet yaml — per-phishlet JA4 exceptions in phishlet YAML (corporate TLS-inspection variants), merged with the node-level `-bg-ja4` allowlist
+- [ ] Per-phishlet JA4 exceptions — a `bg_ja4_allow` option in phishlet YAML (corporate TLS-inspection variants), merged with the node-level `-bg-ja4` allowlist
 - [ ] Relay: automatic residential-exit rotation + cooldown handling (proxy pool)
 - [ ] Relay captures auto-import into the console session store (one-click mailbox open)
 - [ ] Evilpuppet e2e — sidecar browser telemetry (chromium DNS quirk on the lab node)
