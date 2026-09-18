@@ -124,6 +124,13 @@ residential exit's reputation ("This browser or app may not be secure") for 30â€
 Automates DNS resolution, TLS cert, botguard decoy, and the trusted-loopback
 render; prints instructions for the manual Safe Browsing check.
 
+## Pre-campaign detection check
+
+SSH_KEY=your-key ./tools/detect_check.sh lure-host /path token user@node
+
+Automates DNS, TLS cert, botguard decoy, and trusted-loopback render;
+prints instructions for the manual Safe Browsing check.
+
 ## Changing source code (deploy flow)
 
 Edit `src/` (or `tools/relay/`) locally, then one command syncs, builds on the
