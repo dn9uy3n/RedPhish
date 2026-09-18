@@ -54,7 +54,7 @@ MCP server — one implementation, no per-tool copies).
 | Command | Effect |
 |---|---|
 | `sessions [n]` | list latest captures (username, password flag, cookie count, IP) |
-| `session <id>` | full detail: credentials + per-domain cookie sets |
+| `session <id> [--show-pw]` | full detail: credentials + per-domain cookie sets. Password masked by default; `--show-pw` reveals the cleartext |
 | `session-del <id>` | delete a session |
 | `export <id> [file]` | cookies → Cookie-Editor extension JSON |
 | `open <id> [--url U] [--fresh] [--headless] [--chrome P] [--port N] [--disable-http2]` | **opens a real Chrome window signed in as the victim** (cookies injected over CDP; `--disable-http2` for login.live.com quirks) |
