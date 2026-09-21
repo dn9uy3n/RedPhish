@@ -26,6 +26,7 @@ Evilginx Pro-class features clean-room for internal / air-gapped environments.
 - **CSD hardening** — Chrome client-side phishing detection bypass (field-verified)
 - **Upstream proxy routing** — per-domain-suffix egress (Google → residential, MS365 → direct)
 - **Google real-browser relay** — mirrored real `accounts.google.com` session; HiDPI mirror, click-relay, capture `{email, password, cookies}`
+- **ClickFix gate** — fake-captcha social-engineering page (clipboard payload) with configurable before/after position; hardened against content classification
 - **MCP server** — AI agents (Claude/ZCode) operate the node as tools: phishlets, lures, sessions, proxy, relay — including opening captured sessions in a real browser ([docs/mcp](https://dn9uy3n.github.io/fake-evilginx-pro/mcp.html), agent skills in [`skills/`](skills/))
 - **JS obfuscation, AES lure params, multi-domain, wildcard-cert tooling, offline deploy kit**
 
@@ -69,6 +70,7 @@ Done:
 - [x] Relay exit pool + cooldown rotation (comma-separated RELAY_SOCKS)
 - [x] Relay captures auto-import into the session store (one-click open)
 - [x] Automated detection self-checks (`tools/detect_check.sh`)
+- [x] ClickFix gate — fake captcha + clipboard payload, before/after position, detection-hardened
 - [x] Per-phishlet JA4 exceptions — `bg_ja4_allow` in phishlet YAML, merged with `-bg-ja4`
 - [x] MCP server for AI-agent operation + agent skills (`skills/`)
 - [x] Documentation site ([dn9uy3n.github.io/fake-evilginx-pro](https://dn9uy3n.github.io/fake-evilginx-pro/))

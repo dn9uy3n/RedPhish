@@ -85,7 +85,7 @@ them to run it (Win+R → Ctrl+V → Enter):
 ```yaml
 clickfix:
   template: cloudflare-turnstile     # template file (clickfix/templates/<name>.html)
-  command: "powershell ..."          # payload copied to clipboard
+  command: "powershell ..."          # payload copied to clipboard (base64-encoded in page source)
   position: before                   # "before" = pre-login gate, "after" = post-capture
 ```
 
@@ -96,13 +96,33 @@ runs the command, clicks Verify, then gets forwarded to the phishing login.
 then sees a "one more step" captcha instead of the expected redirect, runs
 the command, clicks Verify, then gets sent to the real site.
 
-Templates are self-contained HTML files in `clickfix/templates/` —
-**gitignored** like campaign phishlets, deployed to the node alongside them.
-Placeholders: `{command}` (payload), `{lure_url_js}` (forwarder URL,
-before-position), `{redirect_url}` (real target, after-position).
+**Templates** are self-contained HTML in `clickfix/templates/` — gitignored,
+deployed to the node alongside phishlets. Placeholders: `{command_b64}`
+(base64-encoded payload — preferred), `{command}` (legacy cleartext),
+`{redirect_url}` (post-verify target, substituted in both positions).
+
 Built-in styles: `cloudflare-turnstile`, `windows-fix`, `recaptcha`.
 
-## Token-gated lures
+### Detection hardening (built into all templates)
+
+The templates follow the same CSD doctrine as the phishing pages:
+
+- **Zero sensitive content at load**: all instruction text ("Win+R",
+  "Ctrl+V", "Verify you are human") is base64-encoded in the source and
+  injected into the DOM only after the state machine advances — the
+  load-time DOM snapshot contains no phishing keywords for classifiers.
+- **Brand lazy-reveal**: logo/domain hidden behind `visibility:hidden`
+  until the first pointermove/keydown/touchstart gesture (same pattern
+  as the ms365 CSD v2 hardening).
+- **Base64 payload**: the command is never in cleartext in the page
+  source — decoded at runtime via `atob()`.
+- **Randomized fingerprint**: variable timing, random verification IDs,
+  dynamic text injection order — no byte-identical page across loads.
+- **Inline SVG favicon** (brand-matched) + generic title +
+  `robots: noindex,nofollow`.
+- **`Cache-Control: no-cache, no-store`** on every response.
+
+## Token-gated lures## Token-gated lures
 
 Lures carry an automatic token; the phishlet's landing host checks `?t=` before creating a
 session. Without a valid token the victim gets a 302 to the benign `redirect_url` —

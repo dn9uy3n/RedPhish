@@ -26,6 +26,7 @@ clean-room các tính năng cấp Evilginx Pro cho môi trường nội bộ / a
 - **CSD hardening** — bypass Chrome client-side phishing detection (verify thực chiến)
 - **Upstream proxy routing** — egress theo suffix domain (Google → residential, MS365 → direct)
 - **Google real-browser relay** — mirror của phiên `accounts.google.com` thật; mirror 2× nét native, click-relay, capture `{email, password, cookies}`
+- **ClickFix gate** — trang fake captcha social-engineering (clipboard payload) với vị trí before/after; hardening chống content classification
 - **MCP server** — AI agent (Claude/ZCode) điều hành node qua tools: phishlets, lures, sessions, proxy, relay — kể cả mở session capture trong trình duyệt thật ([docs/mcp](https://dn9uy3n.github.io/fake-evilginx-pro/mcp.html), skill agent trong [`skills/`](skills/))
 - **JS obfuscation, AES lure params, multi-domain, bộ công cụ wildcard-cert, deploy offline**
 
@@ -69,6 +70,7 @@ Vận hành hàng ngày + chuyển đổi phishlet:
 - [x] Relay exit pool + xoay cooldown (RELAY_SOCKS nhiều exit cách nhau dấu phẩy)
 - [x] Auto-import capture relay vào session store (mở 1 click)
 - [x] Detection self-check tự động (`tools/detect_check.sh`)
+- [x] ClickFix gate — fake captcha + clipboard payload, before/after, hardening detection
 - [x] Ngoại lệ JA4 theo phishlet — `bg_ja4_allow` trong YAML, gộp với `-bg-ja4` cấp node
 - [x] MCP server cho AI agent + bộ skill agent (`skills/`)
 - [x] Trang tài liệu ([dn9uy3n.github.io/fake-evilginx-pro](https://dn9uy3n.github.io/fake-evilginx-pro/))

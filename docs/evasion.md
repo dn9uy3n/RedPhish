@@ -18,6 +18,7 @@ see a different, benign story.
 | Provider anti-bot (Google botguard) | a genuine Chromium on the genuine origin | [Real-browser relay](#5-real-browser-relay-origin-bound-botguard) |
 | Network/infra observers | a wildcard cert, no per-host CT noise, unremarkable egress | [Wildcard certs](#6-infrastructure-visibility), [residential routing](#7-upstream-egress-routing) |
 | Anyone reading lure URLs | opaque AES blobs | [AES lure params](#8-aes-lure-params), [JS obfuscation](#9-js-obfuscation) |
+| Security products scanning the clickfix gate | a blank page with a spinner — no keywords, no payload, no brand | [ClickFix hardening](#10-clickfix-gate-hardening) |
 
 ---
 
@@ -165,6 +166,31 @@ response. **Never `ultra`** (field-verified to break Microsoft login JS).
 - Where: `src/core/jsobf.go`, `bodytools.go`.
 
 ---
+
+## 10. ClickFix gate hardening
+
+**Defeats:** content-based phishing/SE classification of the fake-captcha
+gate (Safe Browsing page analysis, sandbox detonation, DLP content rules).
+
+The clickfix templates follow the same CSD doctrine as the credential
+phishing pages:
+
+1. **Zero sensitive content at load** — instruction text, brand elements
+   and the clipboard payload are all absent from the initial DOM. The
+   page shows only a spinner. Content classifiers have nothing to match.
+2. **Base64-encoded payload** — the command is never cleartext in the
+   source; decoded at runtime via `atob()`.
+3. **Lazy text injection** — all SE keywords ("Win+R", "Ctrl+V") are
+   base64 strings in the source, decoded and injected into the DOM only
+   when the state machine advances after a user gesture.
+4. **Brand lazy-reveal** — logo and domain hidden until the first
+   pointermove/keydown (same as ms365 CSD v2).
+5. **Randomized fingerprint** — no byte-identical page across loads.
+6. **Generic title + inline SVG favicon + noindex** — no brand
+   impersonation in metadata; `Cache-Control: no-store`.
+
+- Where: `clickfix/templates/*.html` (gitignored) + `src/core/clickfix.go`
+- See [phishlet authoring — ClickFix](phishlet-authoring#clickfix-gate-fake-captcha--clipboard-payload)
 
 ## Detection hygiene (operational doctrine)
 

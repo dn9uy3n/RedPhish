@@ -67,20 +67,26 @@ fingerprint; read the exact variant from the node journal
 (`botguard: JA4 not in allowlist ... <ja4>`) and add it. Each SWG profile yields
 a distinct but stable variant (field-observed: two profiles one digit apart).
 
-## ClickFix gate (fake captcha)
+## ClickFix gate (fake captcha + clipboard payload)
 
 Optional per-phishlet section that serves a social-engineering
-"verification" page copying a command to the victim's clipboard:
+"verification" page which silently copies a command to the victim's
+clipboard and instructs them to run it (Win+R → Ctrl+V → Enter):
 
 ```yaml
 clickfix:
-  template: cloudflare-turnstile
-  command: "<payload>"
-  position: before   # or "after" for post-capture
+  template: cloudflare-turnstile     # cloudflare-turnstile / windows-fix / recaptcha
+  command: "<payload>"               # base64-encoded in the page source
+  position: before                   # before = pre-login, after = post-capture
 ```
 
 Templates in `clickfix/templates/` (gitignored, deployed to the node like
-phishlets). See phishlet-authoring docs for the full reference.
+phishlets). Hardened against content classification: zero sensitive text
+in the initial DOM, base64 payload, brand lazy-reveal, randomized
+fingerprint. Placeholders: `{command_b64}` (preferred), `{command}`
+(legacy), `{redirect_url}` (auto-substituted).
+
+See phishlet-authoring docs for the full detection-hardening reference.
 
 ## Lure options (fork extensions)
 
