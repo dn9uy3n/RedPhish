@@ -71,10 +71,23 @@ def mask(s, keep=3):
 
 class Console(cmd.Cmd):
     intro = (
-        "egconsole — RedPhish operator console. 'help' lists commands, "
-        "'use <node>' selects a node, Ctrl+D quits."
+        "\n"
+        "  \033[93m__Y__\033[0m       \033[93m__Y__\033[0m       \033[93m__Y__\033[0m\n"
+        "  \033[91m/RR\\___Y___/RR\\___Y___/RR\\\033[0m\n"
+        "  \033[91m|RRRRRRRRRRRRRRRRRRRRRRR|\033[0m\n"
+        "  \033[91m|R\033[0m\033[97mWWKKWWWKKKWWWKKW\033[0m\033[91mR\033[0m\n"
+        "  \033[91m|R\033[0m\033[97mWWKKWWWKKKWWWKKW\033[0m\033[91mR\033[0m\n"
+        "  \033[91m|R\033[0m\033[97mWWWKKKKKWWWWWWW\033[0m\033[91mR\033[0m\n"
+        "  \033[91m|R\033[0m\033[97mWKKKKKKKKKKKKKKW\033[0m\033[91mR\033[0m\n"
+        "  \033[91m|R\033[0m\033[97mWK\033[93mYY\033[0m\033[97mK\033[93mYY\033[0m\033[97mK\033[93mYY\033[0m\033[97mKKW\033[0m\033[91mR\033[0m\n"
+        "  \033[91m|R\033[0m\033[97mWKKKKKKKKKKKKKKW\033[0m\033[91mR\033[0m\n"
+        "  \033[91m|RRRRRRRRRRRRRRRRRRRRRRR|\033[0m\n"
+        "  \033[91mRRrRRr.RRrRRrRRr.RRrRRrRRr\033[0m\n"
+        "\n"
+        "  \033[1;91mREDPHISH\033[0m \033[90moperator console\033[0m\n"
+        "  \033[90m'help' lists commands | 'use <node>' selects | Ctrl+D quits\033[0m\n"
     )
-    prompt = "eg> "
+    prompt = "\033[1;91meg>\033[0m "
 
     def __init__(self):
         super().__init__()

@@ -2,7 +2,6 @@ package core
 
 import (
 	"fmt"
-	"strings"
 
 	"github.com/fatih/color"
 )
@@ -11,104 +10,103 @@ const (
 	VERSION = "3.3.0"
 )
 
+// putAsciiArt renders colored blocks: R=red, r=dark red, W=white, K=black,
+// Y=gold, M=maroon, .=transparent
 func putAsciiArt(s string) {
 	for _, c := range s {
 		d := string(c)
 		switch string(c) {
-		case " ":
-			color.Set(color.BgRed)
+		case "R":
+			color.Set(color.BgRed, color.FgHiWhite)
 			d = " "
-		case "@":
-			color.Set(color.BgBlack)
-			d = " "
-		case "#":
+		case "r":
 			color.Set(color.BgHiRed)
 			d = " "
 		case "W":
 			color.Set(color.BgWhite)
 			d = " "
-		case "_":
+		case "K":
+			color.Set(color.BgBlack, color.FgHiWhite)
+			d = " "
+		case "Y":
+			color.Set(color.BgYellow, color.FgBlack)
+			d = " "
+		case "M":
+			color.Set(color.BgHiBlack, color.FgHiWhite)
+			d = " "
+		case ".":
 			color.Unset()
 			d = " "
 		case "\n":
 			color.Unset()
-		}
-		fmt.Print(d)
-	}
-	color.Unset()
-}
-
-func printLogo(s string) {
-	for _, c := range s {
-		d := string(c)
-		switch string(c) {
-		case "_":
-			color.Set(color.FgWhite)
-		case "\n":
-			color.Unset()
 		default:
-			color.Set(color.FgHiBlack)
+			color.Unset()
 		}
 		fmt.Print(d)
 	}
 	color.Unset()
 }
 
-func printUpdateName() {
+func printRedText(s string) {
+	c := color.New(color.FgHiRed, color.Bold)
+	fmt.Fprintf(color.Output, "%s", c.Sprintf("%s", s))
+}
+
+func printGoldText(s string) {
+	c := color.New(color.FgYellow)
+	fmt.Fprintf(color.Output, "%s", c.Sprintf("%s", s))
+}
+
+func printVersion() {
+	verClr := color.New(color.FgGreen)
 	nameClr := color.New(color.FgHiWhite)
-	txt := nameClr.Sprintf("               - --  Community Edition  -- -")
+	txtClr := color.New(color.FgHiBlack)
+	txt := txtClr.Sprintf("        fork of evilginx2 CE (") + nameClr.Sprintf("@mrgretzky") +
+		txtClr.Sprintf(")") + txtClr.Sprintf("  version ") + verClr.Sprintf("%s", VERSION)
 	fmt.Fprintf(color.Output, "%s", txt)
 }
 
-func printOneliner1() {
-	handleClr := color.New(color.FgHiBlue)
-	versionClr := color.New(color.FgGreen)
-	textClr := color.New(color.FgHiBlack)
-	spc := strings.Repeat(" ", 10-len(VERSION))
-	txt := textClr.Sprintf("      by Kuba Gretzky (") + handleClr.Sprintf("@mrgretzky") + textClr.Sprintf(")") + spc + textClr.Sprintf("version ") + versionClr.Sprintf("%s", VERSION)
-	fmt.Fprintf(color.Output, "%s", txt)
-}
-
-func printOneliner2() {
-	textClr := color.New(color.FgHiBlack)
-	red := color.New(color.FgRed)
-	white := color.New(color.FgWhite)
-	txt := textClr.Sprintf("                   no ") + red.Sprintf("nginx") + white.Sprintf(" - ") + textClr.Sprintf("pure ") + red.Sprintf("evil")
-	fmt.Fprintf(color.Output, "%s", txt)
-}
-
+// Banner prints the RedPhish joker banner on startup.
 func Banner() {
 	fmt.Println()
 
-	putAsciiArt("__                                     __\n")
-	putAsciiArt("_   @@     @@@@@@@@@@@@@@@@@@@     @@   _")
-	printLogo(`    ___________      __ __           __               `)
+	// Jester hat (3 horns + gold bells)
+	putAsciiArt("......__Y__.........__Y__.........__Y__.....\n")
+	putAsciiArt("....__/...\\__Y_____/...\\__Y_____/...\\_....\n")
+	putAsciiArt(".../..RRRR......RRRR.......RRRR.....\\...\n")
+	putAsciiArt("../..RRRRr.....RRRRr.......RRRRr......\\..\n")
+	putAsciiArt("./..RRRRRR....RRRRRR......RRRRRR.......\\.\n")
+	putAsciiArt("./.RRRRRRR...RRRRRRR.....RRRRRRR........\n")
+	putAsciiArt("..RRRRRRRRR.RRRRRRRRR..RRRRRRRRR........\n")
+	putAsciiArt("..RRRRRRRRRRRRRRRRRRRRRRRRRRRRRR........\n")
+
+	// Face (white with features)
+	putAsciiArt("..RRWWWWWWWWWWWWWWWWWWWWWWWWWWRR........\n")
+	putAsciiArt("..RWWKKWWWWWWWKKKWWWWWWWKKWWWR..........\n")
+	putAsciiArt("..RWWKKWWWWWWWKKKWWWWWWWKKWWWR..........\n")
+	putAsciiArt("..RWWWWWWWWWWKKKKWWWWWWWWWWWR...........\n")
+	putAsciiArt("..RWWWWWWWWWWKKKKWWWWWWWWWWWR...........\n")
+	putAsciiArt("..RWWKKKKKKKKKKKKKKKKKKKKKWWWR...........\n")
+	putAsciiArt("..RWWKYYKYYKYYKYYKYYKYYKYYKWWWR..........\n")
+	putAsciiArt("..RWWKKKKKKKKKKKKKKKKKKKKKWWWR...........\n")
+	putAsciiArt("..RRWWWWWWWWWWWWWWWWWWWWWWWRR............\n")
+
+	// Collar (red spikes)
+	putAsciiArt("..RRRRRRRRRRRRRRRRRRRRRRRRRRRR............\n")
+	putAsciiArt(".RRrRRrRRr..RRrRRrRRr..RRrRRrRRr.........\n")
+	putAsciiArt("RRr.RRr.RRr.RRr.RRr.RRr.RRr.RRr.RRr......\n")
+
+	// REDPHISH wordmark
 	fmt.Println()
-	putAsciiArt("  @@@@    @@@@@@@@@@@@@@@@@@@@@    @@@@  ")
-	printLogo(`    \_   _____/__  _|__|  |    ____ |__| ____ ___  ___`)
+	printRedText("  ██████╗ ███████╗███████╗ █████╗ ██╗  ██╗██████╗ ██╗     ███████╗\n")
+	printRedText(" ██╔══██╗██╔════╝██╔════╝██╔══██╗██║ ██╔╝██╔══██╗██║     ██╔════╝\n")
+	printRedText(" ██████╔╝█████╗  █████╗  ███████║█████╔╝ ██████╔╝██║     ███████╗\n")
+	printRedText(" ██╔══██╗██╔══╝  ██╔══╝  ██╔══██║██╔═██╗ ██╔══██╗██║     ╚════██║\n")
+	printRedText(" ██║  ██║███████╗███████╗██║  ██║██║  ██╗██████╔╝███████╗███████║\n")
+	printGoldText(" ╚═╝  ╚═╝╚══════╝╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝╚═════╝ ╚══════╝╚══════╝\n")
+
 	fmt.Println()
-	putAsciiArt("  @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@  ")
-	printLogo(`     |    __)_\  \/ /  |  |   / __ \|  |/    \\  \/  /`)
+	printVersion()
 	fmt.Println()
-	putAsciiArt("    @@@@@@@@@@###@@@@@@@###@@@@@@@@@@    ")
-	printLogo(`     |        \\   /|  |  |__/ /_/  >  |   |  \>    < `)
-	fmt.Println()
-	putAsciiArt("      @@@@@@@#####@@@@@#####@@@@@@@      ")
-	printLogo(`    /_______  / \_/ |__|____/\___  /|__|___|  /__/\_ \`)
-	fmt.Println()
-	putAsciiArt("       @@@@@@@###@@@@@@@###@@@@@@@       ")
-	printLogo(`            \/              /_____/         \/      \/`)
-	fmt.Println()
-	putAsciiArt("      @@@@@@@@@@@@@@@@@@@@@@@@@@@@@      \n")
-	putAsciiArt("     @@@@@WW@@@WW@@WWW@@WW@@@WW@@@@@     ")
-	printUpdateName()
-	fmt.Println()
-	putAsciiArt("    @@@@@@WW@@@WW@@WWW@@WW@@@WW@@@@@@    \n")
-	//printOneliner2()
-	//fmt.Println()
-	putAsciiArt("_   @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@   _")
-	printOneliner1()
-	fmt.Println()
-	putAsciiArt("__                                     __\n")
 	fmt.Println()
 }
