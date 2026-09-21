@@ -10,12 +10,12 @@ const (
 	VERSION = "3.3.0"
 )
 
-func printRedText(s string) {
+func printRed(s string) {
 	c := color.New(color.FgHiRed, color.Bold)
 	fmt.Fprintf(color.Output, "%s", c.Sprintf("%s", s))
 }
 
-func printGoldText(s string) {
+func printGold(s string) {
 	c := color.New(color.FgYellow)
 	fmt.Fprintf(color.Output, "%s", c.Sprintf("%s", s))
 }
@@ -34,12 +34,12 @@ func Banner() {
 	fmt.Println()
 	fmt.Println()
 
-	printRedText(" ███████╗██████╗ ██╗  ██╗███████╗██╗  ██╗███████╗ █████╗ \n")
-	printRedText(" ██╔════╝██╔══██╗██║ ██╔╝██╔════╝██║  ██║██╔════╝██╔══██╗\n")
-	printRedText(" █████╗  ██████╔╝█████╔╝ █████╗  ███████║█████╗  ███████║\n")
-	printRedText(" ██╔══╝  ██╔══██╗██╔═██╗ ██╔══╝  ██╔══██║██╔══╝  ╚════██║\n")
-	printRedText(" ███████╗██║  ██║██║  ██╗███████╗██║  ██║███████╗███████║\n")
-	printGoldText(" ╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝╚═╝  ╚═╝╚══════╝╚══════╝\n")
+	printRed("██████╗ ███████╗ ██████╗ ██████╗ ██╗  ██╗ ██╗ ███████╗ ██╗  ██╗\n")
+	printRed("██╔══██╗ ██╔════╝ ██╔══██╗ ██╔══██╗ ██║  ██║ ██║ ██╔════╝ ██║  ██║\n")
+	printRed("██████╔╝ █████╗ ██║  ██║ ██████╔╝ ███████║ ██║ ███████╗ ███████║\n")
+	printRed("██╔══██╗ ██╔══╝ ██║  ██║ ██╔══╝ ██║  ██║ ██║ ╚════██║ ██║  ██║\n")
+	printRed("██║  ██║ ███████╗ ██████╔╝ ██║ ██║  ██║ ██║ ███████╗ ██║  ██║\n")
+	printGold("╚═╝  ╚═╝ ╚══════╝ ╚═════╝ ╚═╝ ╚═╝  ╚═╝ ╚═╝ ╚══════╝ ╚═╝  ╚═╝\n")
 
 	fmt.Println()
 	printVersion()
