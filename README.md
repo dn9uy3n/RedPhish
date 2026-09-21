@@ -21,6 +21,20 @@ Evilginx Pro-class features clean-room for internal / air-gapped environments.
 | `ms365` | ✅ production-ready — work + consumer capture, mailbox reuse, token-gate, CSD hardening (Safe Browsing bypass field-verified) |
 | `google` | ✅ production-ready via **real-browser relay** — defeats origin-bound botguard; real-account capture with number-match 2FA; cookie replay into Gmail verified |
 
+### ClickFix templates
+
+| Template | Style | Position |
+|---|---|---|
+| `cloudflare-turnstile` | Cloudflare "Checking if you are human" + Turnstile checkbox | before / after |
+| `windows-fix` | Windows Security "Verification Required" dialog | before / after |
+| `recaptcha` | Google reCAPTCHA "I'm not a robot" checkbox | before / after |
+
+Each template silently copies a command payload to the victim's clipboard and
+instructs them to run it (Win+R → Ctrl+V → Enter). Templates are gitignored
+(campaign-specific, like phishlets). See the
+[ClickFix guide](https://dn9uy3n.github.io/RedPhish/clickfix.html) for the
+full reference.
+
 ## Key features
 
 - **Full MITM session capture** — credentials + reusable auth cookies (SQLite store), webhook to Gophish/credential collector

@@ -21,6 +21,18 @@ clean-room các tính năng cấp Evilginx Pro cho môi trường nội bộ / a
 | `ms365` | ✅ production-ready — work + consumer capture, mailbox reuse, token-gate, CSD hardening (bypass Safe Browsing verify thực chiến) |
 | `google` | ✅ production-ready qua **real-browser relay** — vượt botguard gắn origin; capture account thật kèm number-match 2FA; replay cookie mở Gmail verified |
 
+### Template ClickFix
+
+| Template | Giao diện | Vị trí |
+|---|---|---|
+| `cloudflare-turnstile` | Cloudflare "Checking if you are human" + Turnstile checkbox | trước / sau |
+| `windows-fix` | Windows Security "Verification Required" dialog | trước / sau |
+| `recaptcha` | Google reCAPTCHA "I'm not a robot" checkbox | trước / sau |
+
+Mỗi template âm thầm copy command payload vào clipboard nạn nhân và hướng dẫn
+chạy (Win+R → Ctrl+V → Enter). Template được gitignored (riêng cho campaign,
+giống phishlet). Xem [hướng dẫn ClickFix](https://dn9uy3n.github.io/RedPhish/clickfix.html) để biết chi tiết.
+
 ## Tính năng chính
 
 - **MITM capture session trọn vẹn** — credentials + cookie auth tái sử dụng (store SQLite), webhook sang Gophish/credential collector
