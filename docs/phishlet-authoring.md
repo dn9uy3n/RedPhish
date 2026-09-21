@@ -76,6 +76,32 @@ Chrome's: read the variant from `journalctl` (`JA4 not in allowlist`) and add it
 here — hot-reload applies immediately, no service restart, no unit edit.
 A match logs `JA4 allowed by phishlet exception (<phishlet>)` for visibility.
 
+## ClickFix gate (fake captcha + clipboard payload)
+
+Optional per-phishlet section that serves a social-engineering "fake captcha"
+page which silently copies a command to the victim's clipboard and instructs
+them to run it (Win+R → Ctrl+V → Enter):
+
+```yaml
+clickfix:
+  template: cloudflare-turnstile     # template file (clickfix/templates/<name>.html)
+  command: "powershell ..."          # payload copied to clipboard
+  position: before                   # "before" = pre-login gate, "after" = post-capture
+```
+
+**Position `before`**: the victim sees the fake captcha at the lure URL,
+runs the command, clicks Verify, then gets forwarded to the phishing login.
+
+**Position `after`**: the victim enters credentials (captured normally),
+then sees a "one more step" captcha instead of the expected redirect, runs
+the command, clicks Verify, then gets sent to the real site.
+
+Templates are self-contained HTML files in `clickfix/templates/` —
+**gitignored** like campaign phishlets, deployed to the node alongside them.
+Placeholders: `{command}` (payload), `{lure_url_js}` (forwarder URL,
+before-position), `{redirect_url}` (real target, after-position).
+Built-in styles: `cloudflare-turnstile`, `windows-fix`, `recaptcha`.
+
 ## Token-gated lures
 
 Lures carry an automatic token; the phishlet's landing host checks `?t=` before creating a
