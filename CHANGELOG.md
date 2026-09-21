@@ -4,6 +4,32 @@ Forked from [evilginx2 CE 3.3.0](https://github.com/kgretzky/evilginx2) (upstrea
 commit `4c0988a`). Every extension is clean-room (no reference to commercial
 binaries) and verified end-to-end on the two-node lab (Kali + Ubuntu).
 
+## v0.11.4 (2026-09-21) — ClickFix real-campaign replica + unified clipboard tail
+
+- **Unified Win+R tail** (all templates, incl. future ones): the wrapped
+  command now ends in `;'I am not a robot - reCAPTCHA Verification ID: XXXX'`
+  — matching the real-world ClickFix campaigns (Malwarebytes 2025-03). The
+  visible Run-dialog tail reads as a quoted verification string while the
+  payload scrolls out of view.
+- **Verification ID**: random **4-digit** (real-campaign format), generated
+  server-side per request and substituted into both the clipboard command and
+  the page display — always identical. `I am not` (no apostrophe) keeps the
+  string safe inside PowerShell single quotes.
+- **windows-fix redesigned** as a pixel-faithful real-campaign replica:
+  stage 1 is a standard Google reCAPTCHA widget (checkbox, logo,
+  Privacy · Terms); the instruction panel only appears after the checkbox is
+  ticked — verbatim campaign text ("To better prove you are not a robot…"),
+  keyboard-key badges (Win / R / Ctrl / V / Enter), the observe/agree line
+  with the live ID, and no Verify button. Silent redirect to the login flow
+  after 30–60 s. Clipboard armed on first gesture + on click
+  (execCommand only — no navigator.clipboard permission popup).
+- **cloudflare-turnstile**: on-page ID box now shows the full
+  `"I am not a robot - reCAPTCHA Verification ID: …"` string so the page
+  matches the Run-dialog tail exactly (regression-tested, tail unified).
+- **Docs**: clickfix guide + phishlet-authoring reference gained `only` /
+  `subdomain` fields, the clipboard-command section and the new flow;
+  README (EN/VI) template table updated.
+
 ## v0.11.3 (2026-09-21) — ClickFix gate (fake captcha + clipboard payload)
 
 - **ClickFix**: optional per-phishlet section (`clickfix: {template, command,

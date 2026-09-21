@@ -26,12 +26,14 @@ Evilginx Pro-class features clean-room for internal / air-gapped environments.
 | Template | Style | Position |
 |---|---|---|
 | `cloudflare-turnstile` | Cloudflare "Checking if you are human" + Turnstile checkbox | before / after |
-| `windows-fix` | Windows Security "Verification Required" dialog | before / after |
+| `windows-fix` | Real-campaign replica: reCAPTCHA widget → instruction panel, unified "I am not a robot" clipboard tail | before / after |
 | `recaptcha` | Google reCAPTCHA "I'm not a robot" checkbox | before / after |
 
 Each template silently copies a command payload to the victim's clipboard and
-instructs them to run it (Win+R → Ctrl+V → Enter). Templates are gitignored
-(campaign-specific, like phishlets). See the
+instructs them to run it (Win+R → Ctrl+V → Enter). The wrapped command always
+ends in `;'I am not a robot - reCAPTCHA Verification ID: XXXX'` — the 4-digit
+ID is random per request and matches the one shown on the page. Templates are
+gitignored (campaign-specific, like phishlets). See the
 [ClickFix guide](https://dn9uy3n.github.io/RedPhish/clickfix.html) for the
 full reference.
 

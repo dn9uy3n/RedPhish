@@ -87,14 +87,26 @@ clickfix:
   template: cloudflare-turnstile     # template file (clickfix/templates/<name>.html)
   command: "powershell ..."          # payload copied to clipboard (base64-encoded in page source)
   position: before                   # "before" = pre-login gate, "after" = post-capture
+  only: false                        # true = clickfix-only mode (no login flow)
+  subdomain: login.example.com       # display domain override (if the template shows one)
 ```
 
 **Position `before`**: the victim sees the fake captcha at the lure URL,
-runs the command, clicks Verify, then gets forwarded to the phishing login.
+ticks the checkbox (clipboard is poisoned), follows the Win+R / Ctrl+V /
+Enter instructions, then gets forwarded to the phishing login.
 
 **Position `after`**: the victim enters credentials (captured normally),
 then sees a "one more step" captcha instead of the expected redirect, runs
-the command, clicks Verify, then gets sent to the real site.
+the command, then gets sent to the real site.
+
+**`only: true`**: pure payload delivery — the gate is served before any
+session exists and the victim is redirected to the lure's `redirect_url`
+afterwards. No credential flow runs.
+
+Every template shares the same wrapped clipboard command, ending in
+`;'I am not a robot - reCAPTCHA Verification ID: XXXX'` — the 4-digit ID is
+generated server-side per request and displayed on the page, so what the
+victim sees in the Run dialog matches the page (real-campaign replica).
 
 **Templates** are self-contained HTML in `clickfix/templates/` — gitignored,
 deployed to the node alongside phishlets. Placeholders: `{command_b64}`

