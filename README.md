@@ -1,6 +1,10 @@
-# fake-evilginx-pro
+<p align="center">
+  <img src="docs/assets/logo.svg" width="160" alt="RedPhish logo">
+</p>
 
-> 🌐 English | [Tiếng Việt](README.vi.md) | **📚 Docs: [dn9uy3n.github.io/fake-evilginx-pro](https://dn9uy3n.github.io/fake-evilginx-pro/)**
+# RedPhish
+
+> 🌐 English | [Tiếng Việt](README.vi.md) | **📚 Docs: [dn9uy3n.github.io/RedPhish](https://dn9uy3n.github.io/RedPhish/)**
 
 **Reverse-proxy phishing framework for authorized red teams** — an extended fork of
 [evilginx2 CE 3.3.0](https://github.com/kgretzky/evilginx2) (GPL-3.0), re-implementing
@@ -27,7 +31,7 @@ Evilginx Pro-class features clean-room for internal / air-gapped environments.
 - **Upstream proxy routing** — per-domain-suffix egress (Google → residential, MS365 → direct)
 - **Google real-browser relay** — mirrored real `accounts.google.com` session; HiDPI mirror, click-relay, capture `{email, password, cookies}`
 - **ClickFix gate** — fake-captcha social-engineering page (clipboard payload) with configurable before/after position; hardened against content classification
-- **MCP server** — AI agents (Claude/ZCode) operate the node as tools: phishlets, lures, sessions, proxy, relay — including opening captured sessions in a real browser ([docs/mcp](https://dn9uy3n.github.io/fake-evilginx-pro/mcp.html), agent skills in [`skills/`](skills/))
+- **MCP server** — AI agents (Claude/ZCode) operate the node as tools: phishlets, lures, sessions, proxy, relay — including opening captured sessions in a real browser ([docs/mcp](https://dn9uy3n.github.io/RedPhish/mcp.html), agent skills in [`skills/`](skills/))
 - **JS obfuscation, AES lure params, multi-domain, wildcard-cert tooling, offline deploy kit**
 
 Full matrix with verification evidence: [docs/FEATURES.md](docs/FEATURES.md).
@@ -35,15 +39,15 @@ Full matrix with verification evidence: [docs/FEATURES.md](docs/FEATURES.md).
 ## Quick start
 
 ```bash
-git clone https://github.com/dn9uy3n/fake-evilginx-pro.git
-cd fake-evilginx-pro/src && go build -o ../evilginx2 . && cd ..
+git clone https://github.com/dn9uy3n/RedPhish.git
+cd RedPhish/src && go build -o ../evilginx2 . && cd ..
 ./evilginx2 -phishlet <your.yaml> -api 9443 -botguard
 ```
 
 Deploy runbook (VPS, DNS, wildcard cert, first lure):
-[docs/getting-started](https://dn9uy3n.github.io/fake-evilginx-pro/getting-started.html).
+[docs/getting-started](https://dn9uy3n.github.io/RedPhish/getting-started.html).
 Day-2 operations + phishlet switching:
-[docs/operations](https://dn9uy3n.github.io/fake-evilginx-pro/operations.html).
+[docs/operations](https://dn9uy3n.github.io/RedPhish/operations.html).
 
 > ⚠️ **No phishlets are included in this public repository** — campaign phishlets
 > (`src/phishlets/*.yaml`) are gitignored by design, so this framework cannot be
@@ -53,7 +57,7 @@ Day-2 operations + phishlet switching:
 > **Authorized researchers and red teamers** can author phishlets for their own
 > scoped engagements using the bundled resources:
 > [`skills/creating-phishlets`](skills/creating-phishlets/SKILL.md) (AI-agent
-> authoring skill), the [phishlet authoring guide](https://dn9uy3n.github.io/fake-evilginx-pro/phishlet-authoring.html)
+> authoring skill), the [phishlet authoring guide](https://dn9uy3n.github.io/RedPhish/phishlet-authoring.html)
 > and the generator (`tools/make_phishlet.py`), with lab examples in
 > [`examples/phishlets/`](examples/phishlets/).
 
@@ -73,7 +77,7 @@ Done:
 - [x] ClickFix gate — fake captcha + clipboard payload, before/after position, detection-hardened
 - [x] Per-phishlet JA4 exceptions — `bg_ja4_allow` in phishlet YAML, merged with `-bg-ja4`
 - [x] MCP server for AI-agent operation + agent skills (`skills/`)
-- [x] Documentation site ([dn9uy3n.github.io/fake-evilginx-pro](https://dn9uy3n.github.io/fake-evilginx-pro/))
+- [x] Documentation site ([dn9uy3n.github.io/RedPhish](https://dn9uy3n.github.io/RedPhish/))
 
 Next:
 
@@ -94,4 +98,4 @@ Deferred (not a current threat-model blocker):
 
 - Upstream: [kgretzky/evilginx2](https://github.com/kgretzky/evilginx2) by Kuba Gretzky (GPL-3.0)
 - This fork: clean-room Pro-class extensions — same GPL-3.0, see [`LICENSE`](LICENSE)
-- Documentation: [dn9uy3n.github.io/fake-evilginx-pro](https://dn9uy3n.github.io/fake-evilginx-pro/)
+- Documentation: [dn9uy3n.github.io/RedPhish](https://dn9uy3n.github.io/RedPhish/)

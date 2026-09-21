@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""egmcp — MCP server for fake-evilginx-pro (stdio transport).
+"""egmcp — MCP server for RedPhish (stdio transport).
 
 Lets an AI agent operate the whole platform: phishlets, lures, sessions,
 upstream proxy, the Google real-browser relay — and open captured sessions
@@ -38,7 +38,7 @@ from lib import session_launcher  # noqa: E402
 
 from mcp.server.fastmcp import FastMCP
 
-mcp = FastMCP("fake-evilginx-pro")
+mcp = FastMCP("RedPhish")
 
 
 def _api(server=None):

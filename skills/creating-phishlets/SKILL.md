@@ -1,11 +1,11 @@
 ---
 name: creating-phishlets
-description: Author phishing phishlets for fake-evilginx-pro (the evilginx2 fork in this workspace). Use when asked to create, adapt, or debug a phishlet YAML for a new identity provider, add credential capture, auth_tokens, sub_filters, token-gating, or CSD hardening. Covers this fork's specific extensions (relay lures, AES params, rewrite_urls).
+description: Author phishing phishlets for RedPhish (the evilginx2 fork in this workspace). Use when asked to create, adapt, or debug a phishlet YAML for a new identity provider, add credential capture, auth_tokens, sub_filters, token-gating, or CSD hardening. Covers this fork's specific extensions (relay lures, AES params, rewrite_urls).
 ---
 
-# Creating phishlets for fake-evilginx-pro
+# Creating phishlets for RedPhish
 
-You are authoring a phishlet for the **fake-evilginx-pro** fork (evilginx2 CE 3.3.0
+You are authoring a phishlet for the **RedPhish** fork (evilginx2 CE 3.3.0
 base). Phishlets live on the node at `phishlets/` (or `<repo>/src/phishlets/` for local
 testing) — they are **gitignored by design** (campaign data, never commit/push).
 

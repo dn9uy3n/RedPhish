@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# wildcard-cert-setup.sh — anti-burn cert provisioning cho evilginx2 (fake-evilginx-pro)
+# wildcard-cert-setup.sh — anti-burn cert provisioning cho evilginx2 (RedPhish)
 #
 # Cốt lõi: autocert per-host cert đưa TỪNG hostname vào CT logs → Google Safe Browsing
 # crawler flag trong vài giờ. Wildcard qua DNS-01 CHỈ lộ base label (*.BASE.ZONE),

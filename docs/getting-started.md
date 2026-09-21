@@ -15,8 +15,8 @@ From a clean Ubuntu VPS to a working node in 5 steps. Placeholders: `<BASE>.<ZON
 ## Step 1 — Build
 
 ```bash
-git clone https://github.com/dn9uy3n/fake-evilginx-pro.git
-cd fake-evilginx-pro/src && go build -o ../evilginx2 .
+git clone https://github.com/dn9uy3n/RedPhish.git
+cd RedPhish/src && go build -o ../evilginx2 .
 ```
 
 ## Step 2 — DNS (Cloudflare)

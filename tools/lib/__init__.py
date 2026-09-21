@@ -1,4 +1,4 @@
-"""tools/lib — shared library for fake-evilginx-pro operator tooling.
+"""tools/lib — shared library for RedPhish operator tooling.
 
 Single source of truth for:
   egapi.py           mTLS API client + node-list loading (egconsole/egctl/egmcp)

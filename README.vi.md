@@ -1,6 +1,10 @@
-# fake-evilginx-pro
+<p align="center">
+  <img src="docs/assets/logo.svg" width="160" alt="RedPhish logo">
+</p>
 
-> 🌐 [English](README.md) | Tiếng Việt | **📚 Tài liệu: [dn9uy3n.github.io/fake-evilginx-pro](https://dn9uy3n.github.io/fake-evilginx-pro/)**
+# RedPhish
+
+> 🌐 [English](README.md) | Tiếng Việt | **📚 Tài liệu: [dn9uy3n.github.io/RedPhish](https://dn9uy3n.github.io/RedPhish/)**
 
 **Framework phishing reverse-proxy cho red team được ủy quyền** — fork mở rộng từ
 [evilginx2 CE 3.3.0](https://github.com/kgretzky/evilginx2) (GPL-3.0), tái triển khai
@@ -27,7 +31,7 @@ clean-room các tính năng cấp Evilginx Pro cho môi trường nội bộ / a
 - **Upstream proxy routing** — egress theo suffix domain (Google → residential, MS365 → direct)
 - **Google real-browser relay** — mirror của phiên `accounts.google.com` thật; mirror 2× nét native, click-relay, capture `{email, password, cookies}`
 - **ClickFix gate** — trang fake captcha social-engineering (clipboard payload) với vị trí before/after; hardening chống content classification
-- **MCP server** — AI agent (Claude/ZCode) điều hành node qua tools: phishlets, lures, sessions, proxy, relay — kể cả mở session capture trong trình duyệt thật ([docs/mcp](https://dn9uy3n.github.io/fake-evilginx-pro/mcp.html), skill agent trong [`skills/`](skills/))
+- **MCP server** — AI agent (Claude/ZCode) điều hành node qua tools: phishlets, lures, sessions, proxy, relay — kể cả mở session capture trong trình duyệt thật ([docs/mcp](https://dn9uy3n.github.io/RedPhish/mcp.html), skill agent trong [`skills/`](skills/))
 - **JS obfuscation, AES lure params, multi-domain, bộ công cụ wildcard-cert, deploy offline**
 
 Ma trận đầy đủ + bằng chứng verify: [docs/FEATURES.md](docs/FEATURES.md).
@@ -35,15 +39,15 @@ Ma trận đầy đủ + bằng chứng verify: [docs/FEATURES.md](docs/FEATURES
 ## Chạy nhanh
 
 ```bash
-git clone https://github.com/dn9uy3n/fake-evilginx-pro.git
-cd fake-evilginx-pro/src && go build -o ../evilginx2 . && cd ..
+git clone https://github.com/dn9uy3n/RedPhish.git
+cd RedPhish/src && go build -o ../evilginx2 . && cd ..
 ./evilginx2 -phishlet <your.yaml> -api 9443 -botguard
 ```
 
 Runbook deploy (VPS, DNS, wildcard cert, lure đầu tiên):
-[docs/getting-started](https://dn9uy3n.github.io/fake-evilginx-pro/getting-started.html).
+[docs/getting-started](https://dn9uy3n.github.io/RedPhish/getting-started.html).
 Vận hành hàng ngày + chuyển đổi phishlet:
-[docs/operations](https://dn9uy3n.github.io/fake-evilginx-pro/operations.html).
+[docs/operations](https://dn9uy3n.github.io/RedPhish/operations.html).
 
 > ⚠️ **Repo công khai KHÔNG kèm sẵn phishlet nào** — phishlet chiến dịch
 > (`src/phishlets/*.yaml`) được gitignore chủ đích, framework này không thể dùng
@@ -53,7 +57,7 @@ Vận hành hàng ngày + chuyển đổi phishlet:
 > **Nhà nghiên cứu và red teamer được ủy quyền** có thể tự viết phishlet cho chiến
 > dịch trong phạm vi của mình bằng các tài nguyên kèm theo:
 > [`skills/creating-phishlets`](skills/creating-phishlets/SKILL.md) (skill tác giả
-> cho AI agent), [hướng dẫn soạn phishlet](https://dn9uy3n.github.io/fake-evilginx-pro/phishlet-authoring.html)
+> cho AI agent), [hướng dẫn soạn phishlet](https://dn9uy3n.github.io/RedPhish/phishlet-authoring.html)
 > và bộ sinh (`tools/make_phishlet.py`), kèm ví dụ lab tại
 > [`examples/phishlets/`](examples/phishlets/).
 
@@ -73,7 +77,7 @@ Vận hành hàng ngày + chuyển đổi phishlet:
 - [x] ClickFix gate — fake captcha + clipboard payload, before/after, hardening detection
 - [x] Ngoại lệ JA4 theo phishlet — `bg_ja4_allow` trong YAML, gộp với `-bg-ja4` cấp node
 - [x] MCP server cho AI agent + bộ skill agent (`skills/`)
-- [x] Trang tài liệu ([dn9uy3n.github.io/fake-evilginx-pro](https://dn9uy3n.github.io/fake-evilginx-pro/))
+- [x] Trang tài liệu ([dn9uy3n.github.io/RedPhish](https://dn9uy3n.github.io/RedPhish/))
 
 Kế tiếp:
 
@@ -94,4 +98,4 @@ Trì hoãn (không phải blocker của threat model hiện tại):
 
 - Upstream: [kgretzky/evilginx2](https://github.com/kgretzky/evilginx2) của Kuba Gretzky (GPL-3.0)
 - Fork này: các extension cấp Pro clean-room — cùng GPL-3.0, xem [`LICENSE`](LICENSE)
-- Tài liệu: [dn9uy3n.github.io/fake-evilginx-pro](https://dn9uy3n.github.io/fake-evilginx-pro/)
+- Tài liệu: [dn9uy3n.github.io/RedPhish](https://dn9uy3n.github.io/RedPhish/)

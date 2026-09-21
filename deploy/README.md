@@ -1,4 +1,4 @@
-# Deploy — evilginx2 node (fake-evilginx-pro) on a VPS
+# Deploy — evilginx2 node (RedPhish) on a VPS
 
 Current state of the **production node** (1 internet-facing VPS, base
 `<BASE>.<ZONE>`, wildcard cert via DNS-01). Updated: **2026-09-17**.
@@ -6,7 +6,7 @@ Current state of the **production node** (1 internet-facing VPS, base
 > 🔒 **OPSEC**: real hostnames, IPs, SSH key paths and full lure URLs live only
 > in internal docs outside the repo (`.worklog/`, memory) — never committed.
 
-> 🤖 **AI agents**: read `skills/operating-fake-evilginx-pro/SKILL.md` before
+> 🤖 **AI agents**: read `skills/operating-RedPhish/SKILL.md` before
 > installing/operating — runbook + every proven gotcha (duplicate `phish_sub`,
 > vacuous completion, autocert burn, Google datacenter-IP blocks, silent SNI
 > drops).

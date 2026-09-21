@@ -74,14 +74,14 @@ behind a tunnel/firewall), `EG_MCP_PORT` (default 8306).
 `claude_desktop_config.json` (Desktop) or `.mcp.json` (Code):
 
 ```json
-{ "mcpServers": { "fake-evilginx-pro": {
+{ "mcpServers": { "RedPhish": {
     "command": "python",
-    "args": ["C:/path/to/fake-evilginx-pro/tools/mcp/egmcp.py"],
+    "args": ["C:/path/to/RedPhish/tools/mcp/egmcp.py"],
     "env": { "EG_MCP_DEFAULT_SERVER": "vps-node-1" } } } }
 ```
 
 Claude Code also accepts it straight on the command line:
-`claude mcp add fake-evilginx-pro -- python <REPO>/tools/mcp/egmcp.py`.
+`claude mcp add RedPhish -- python <REPO>/tools/mcp/egmcp.py`.
 Verify from the chat: "list my evilginx servers" (calls `servers_list`).
 
 ### Cursor (`.cursor/mcp.json`)
@@ -89,7 +89,7 @@ Verify from the chat: "list my evilginx servers" (calls `servers_list`).
 stdio on the same machine:
 
 ```json
-{ "mcpServers": { "fake-evilginx-pro": {
+{ "mcpServers": { "RedPhish": {
     "command": "python",
     "args": ["<REPO>/tools/mcp/egmcp.py"] } } }
 ```
@@ -97,7 +97,7 @@ stdio on the same machine:
 or streamable-http from another machine (serve `--http` first):
 
 ```json
-{ "mcpServers": { "fake-evilginx-pro": {
+{ "mcpServers": { "RedPhish": {
     "url": "http://<egmcp-host>:8306/mcp",
     "headers": { "X-API-Key": "<key from: egconsole mcpkey>" } } } }
 ```

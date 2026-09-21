@@ -1,9 +1,9 @@
 ---
-name: operating-fake-evilginx-pro
-description: Operate the fake-evilginx-pro node (phishlets, lures, sessions, proxy, Google relay) via its MCP server or the raw mTLS API. Use when asked to enable/disable phishlets, create token-gated lures, inspect or export captured sessions, open a captured session in a real browser, configure upstream proxy routing, or troubleshoot the node (decoy pages, DNS, relay cooldowns).
+name: operating-RedPhish
+description: Operate the RedPhish node (phishlets, lures, sessions, proxy, Google relay) via its MCP server or the raw mTLS API. Use when asked to enable/disable phishlets, create token-gated lures, inspect or export captured sessions, open a captured session in a real browser, configure upstream proxy routing, or troubleshoot the node (decoy pages, DNS, relay cooldowns).
 ---
 
-# Operating fake-evilginx-pro (MCP + API)
+# Operating RedPhish (MCP + API)
 
 Two control planes, same node: the **MCP server** (`tools/mcp/egmcp.py`, for AI agents)
 and the **operator console** (`tools/egconsole.py`). Both speak the node's hidden mTLS

@@ -1,5 +1,5 @@
 [Unit]
-Description=evilginx2 (fake-evilginx-pro) - <PHISHLETS> @ <BASE>.<ZONE>
+Description=evilginx2 (RedPhish) - <PHISHLETS> @ <BASE>.<ZONE>
 After=network-online.target
 Wants=network-online.target
 

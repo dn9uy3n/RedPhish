@@ -1,6 +1,6 @@
 # tools/
 
-The complete operator toolchain of fake-evilginx-pro. v0.11 layout (see
+The complete operator toolchain of RedPhish. v0.11 layout (see
 `docs/architecture.md` for the full map):
 
 ```

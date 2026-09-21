@@ -3,7 +3,7 @@ layout: default
 title: Home
 ---
 
-# fake-evilginx-pro
+# RedPhish
 
 **A full-featured reverse-proxy phishing framework for authorized red teams** — an extended
 fork of [evilginx2 CE 3.3.0](https://github.com/kgretzky/evilginx2) (GPL-3.0), cleanly
@@ -66,5 +66,5 @@ docs/                this documentation (also the GitHub Pages site)
 
 ## Links
 
-- Source: [github.com/dn9uy3n/fake-evilginx-pro](https://github.com/dn9uy3n/fake-evilginx-pro)
-- Vietnamese README: [README.vi.md](https://github.com/dn9uy3n/fake-evilginx-pro/blob/main/README.vi.md)
+- Source: [github.com/dn9uy3n/RedPhish](https://github.com/dn9uy3n/RedPhish)
+- Vietnamese README: [README.vi.md](https://github.com/dn9uy3n/RedPhish/blob/main/README.vi.md)
