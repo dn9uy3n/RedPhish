@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/logo.svg" width="160" alt="RedPhish logo">
+  <img src="docs/assets/logo.png" width="160" alt="RedPhish logo">
 </p>
 
 # RedPhish
