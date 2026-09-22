@@ -101,6 +101,7 @@ Next:
 
 - [ ] Fleet console — unified multi-node view (sessions + lures across nodes)
 - [ ] HTTP/2 Akamai TLS fingerprint for botguard
+- [ ] Phishlets: `gitlab` (GitLab.com + self-hosted, TOTP), `atlassian` (Atlassian account / Jira-Confluence SSO), `zimbra` (Zimbra webmail — on-prem targets), `yandex` (Yandex ID + Yandex Mail)
 
 Deferred (not a current threat-model blocker):
 

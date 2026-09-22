@@ -100,6 +100,7 @@ Kế tiếp:
 
 - [ ] Console fleet — xem thống nhất nhiều node (sessions + lures cross-node)
 - [ ] HTTP/2 Akamai TLS fingerprint cho botguard
+- [ ] Phishlet: `gitlab` (GitLab.com + self-hosted, TOTP), `atlassian` (Atlassian account / Jira-Confluence SSO), `zimbra` (Zimbra webmail — target on-prem), `yandex` (Yandex ID + Yandex Mail)
 
 Trì hoãn (không phải blocker của threat model hiện tại):
 
