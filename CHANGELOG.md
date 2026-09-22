@@ -4,6 +4,31 @@ Forked from [evilginx2 CE 3.3.0](https://github.com/kgretzky/evilginx2) (upstrea
 commit `4c0988a`). Every extension is clean-room (no reference to commercial
 binaries) and verified end-to-end on the two-node lab (Kali + Ubuntu).
 
+## v0.11.9 (2026-09-22) — GitHub verified E2E + 6 unverified phishlets
+
+- **GitHub promoted to production-ready**: real-account E2E — password
+  captured, GitHub-Mobile push 2FA passed through the MITM, dashboard
+  redirect detected, tokens intercepted. Token fix from the live run:
+  modern GitHub no longer sets domain-wide `user_session`; the session
+  cookie is host-only `__Host-user_session_same_site` (now required) —
+  `_gh_sess`, `logged_in`, `dotcom_user`, `_octo` optional.
+- **6 new phishlets, marked UNVERIFIED** (deployed with gated lures):
+  `gitlab` (Turnstile in front; `user[login]/user[password]/user[otp_attempt]`),
+  `atlassian` (SPA proxied; JSON creds `username`/`password`;
+  `cloud.session.token.issuer`), `yandex` (passport + yastatic;
+  `Session_id`), `aws` (signin+console hosts; `x-main`; fixed
+  `login.domain` validation — must be `signin.aws.amazon.com` via
+  domain `aws.amazon.com`), `claude` (claude.ai + auth.anthropic.com;
+  `sessionKey`), `chatgpt` (chatgpt.com + auth.openai.com + cdn.auth0.com;
+  `__Secure-next-auth.session-token`).
+- **`zimbra` phishlet template** (on-prem): required `{domain}` param,
+  classic `username`/`password` fields, `ZM_AUTH_TOKEN` — instantiate per
+  target, not enabled globally.
+- Render-check through lures: atlassian hydrates on the phishing host;
+  gitlab/claude/chatgpt sit at the Cloudflare challenge on the phishing
+  host; aws returns WAF 403 to datacenter IPs; yandex landing needs
+  re-pointing (currently bounces to 360.yandex.com).
+
 ## v0.11.8 (2026-09-22) — GitHub phishlet (login + TOTP)
 
 - **New `github` phishlet** (gitignored like all campaign phishlets, docs

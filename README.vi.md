@@ -20,7 +20,14 @@ clean-room các tính năng cấp Evilginx Pro cho môi trường nội bộ / a
 |---|---|
 | `ms365` | ✅ production-ready — work + consumer capture, mailbox reuse, token-gate, CSD hardening (bypass Safe Browsing verify thực chiến) |
 | `google` | ✅ production-ready qua **real-browser relay** — vượt botguard gắn origin; capture account thật kèm number-match 2FA; replay cookie mở Gmail verified |
-| `github` | 🧪 đang test — capture login + TOTP (`otp`), token `user_session` + `__Host-user_session_same_site`, CSP strip + auto-filter; leg login đã verify end-to-end, leg 2FA chờ account test |
+| `github` | ✅ production-ready — login + 2FA capture **verify E2E bằng account thật** (2FA GitHub-Mobile push); token `__Host-user_session_same_site` + `_gh_sess` (GitHub hiện đại bỏ `user_session` domain-wide); capture TOTP đã code, chưa test |
+| `gitlab` | ⚠️ chưa verify — Cloudflare Turnstile trước trang login (render qua host phishing OK); field `user[login]/user[password]/user[otp_attempt]` |
+| `atlassian` | ⚠️ chưa verify — SPA render qua proxy (credentials JSON `username`/`password`); AWS WAF SDK + reCAPTCHA cross-origin chưa proxy |
+| `zimbra` | ⚠️ chưa verify — template on-prem với param bắt buộc `{domain}`; field cổ điển `username`/`password`, token `ZM_AUTH_TOKEN` |
+| `yandex` | ⚠️ chưa verify — landing `/auth/` hiện bounce sang 360.yandex.com; field React login cần bắt lại bằng account test |
+| `aws` | ⚠️ chưa verify — AWS WAF 403 với IP datacenter ở `/signin`; field `username`/`password`/`mfaCode` |
+| `claude` | ⚠️ chưa verify — Cloudflare challenge; login Anthropic account `email`/`password`, session `sessionKey` |
+| `chatgpt` | ⚠️ chưa verify — Cloudflare + flow Auth0 (`auth.openai.com/u/login/password`); session `__Secure-next-auth.session-token` |
 
 ### Template ClickFix
 
@@ -100,7 +107,7 @@ Kế tiếp:
 
 - [ ] Console fleet — xem thống nhất nhiều node (sessions + lures cross-node)
 - [ ] HTTP/2 Akamai TLS fingerprint cho botguard
-- [ ] Phishlet: `gitlab` (GitLab.com + self-hosted, TOTP), `atlassian` (Atlassian account / Jira-Confluence SSO), `zimbra` (Zimbra webmail — target on-prem), `yandex` (Yandex ID + Yandex Mail)
+- [ ] Verify các phishlet chưa verify ở trên bằng account test (gitlab, atlassian, zimbra, yandex, aws, claude, chatgpt)
 
 Trì hoãn (không phải blocker của threat model hiện tại):
 

