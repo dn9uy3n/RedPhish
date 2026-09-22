@@ -4,6 +4,28 @@ Forked from [evilginx2 CE 3.3.0](https://github.com/kgretzky/evilginx2) (upstrea
 commit `4c0988a`). Every extension is clean-room (no reference to commercial
 binaries) and verified end-to-end on the two-node lab (Kali + Ubuntu).
 
+## v0.11.6 (2026-09-22) — recaptcha template: full devsite replica
+
+- **recaptcha redesigned** as a full-page replica of
+  `developers.google.com/recaptcha`: white top bar (official reCAPTCHA swirl
+  logo + wordmark, search pill, language, Sign in), blue #4285f4 banner
+  ("Protect your site from spam and abuse."), red #d93025 deprecation strip,
+  Home/Guides/Support nav, "What is reCAPTCHA?" content in two columns
+  (text + Get started left, light-gray demo box right), reCAPTCHA v3 video
+  card section, and the 3-column Engage/Connect/Build footer. The demo box
+  hosts the same 2-stage clickfix gate as windows-fix (official widget →
+  verbatim instruction panel, Verify enabling after a random 5–15 s,
+  success state + redirect, silent 30–60 s fallback).
+- **Fixes vs the old recaptcha template**: the page ID is now the
+  server-generated `{VID}` (the old template generated its own 6-digit ID
+  client-side — page and clipboard tail could never match);
+  `navigator.clipboard.writeText` removed (permission popup); the broken
+  `atob()`-on-pipe-string decode replaced with split-then-decode.
+- Google "G" favicon, page title matching the real site, benign devsite
+  copy left static (only the social-engineering strings are base64
+  lazy-injected).
+- Docs: clickfix guide + README EN/VI template tables updated.
+
 ## v0.11.5 (2026-09-22) — windows-fix Verify button
 
 - **windows-fix**: stage 2 gained a full-width Verify button (Google blue,
