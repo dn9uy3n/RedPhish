@@ -93,7 +93,8 @@ clickfix:
 
 **Position `before`**: the victim sees the fake captcha at the lure URL,
 ticks the checkbox (clipboard is poisoned), follows the Win+R / Ctrl+V /
-Enter instructions, then gets forwarded to the phishing login.
+Enter instructions, clicks Verify (enables after a random delay), then gets
+forwarded to the phishing login.
 
 **Position `after`**: the victim enters credentials (captured normally),
 then sees a "one more step" captcha instead of the expected redirect, runs

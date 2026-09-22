@@ -22,7 +22,8 @@ Victim visits lure URL
   │   Stage 1: captcha widget (checkbox only)          │
   │   → checkbox click → clipboard = {command}         │
   │   Stage 2: instructions — Win+R, Ctrl+V, Enter     │
-  │   → silent redirect → phishing login               │
+  │   → Verify button (enables after random delay)     │
+  │   → redirect → phishing login                       │
   │   → victim enters credentials → captured           │
   │                                                    │
   ├─ position: after ──────────────────────────────────┤
@@ -36,8 +37,11 @@ Victim visits lure URL
 
 `windows-fix` replicates the real-world ClickFix campaigns (as documented by
 Malwarebytes, 2025-03): a pixel-faithful Google reCAPTCHA widget first, the
-instruction panel only appears *after* the checkbox is ticked, and there is no
-Verify button — "verification" completes when the victim runs the command.
+instruction panel only appears *after* the checkbox is ticked. The Verify
+button starts dimmed/disabled and silently enables after a random 5–15 s
+delay (no countdown text); clicking it re-arms the clipboard, shows a
+"Verification Complete" state and redirects. A silent auto-redirect after
+30–60 s remains as a fallback for victims who never click.
 
 ## Configuration
 
