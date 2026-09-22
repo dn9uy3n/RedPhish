@@ -20,7 +20,8 @@ binaries) and verified end-to-end on the two-node lab (Kali + Ubuntu).
   `atob()`-on-pipe-string decode replaced with split-then-decode.
 - An intermediate full devsite replica (developers.google.com/recaptcha
   page clone) was built and measured against the live page first, then
-  trimmed to the widget-only design above per operator decision.
+  trimmed to the widget-only design above per operator decision; favicon is
+  the four-color Google "G" (operator pick).
 - Docs: clickfix guide + README EN/VI template tables updated.
 
 ## v0.11.5 (2026-09-22) — windows-fix Verify button
