@@ -14,6 +14,8 @@ binaries) and verified end-to-end on the two-node lab (Kali + Ubuntu).
   login flow after ~1.2–1.7 s. The silent 30–60 s auto-redirect remains as
   a fallback for victims who never click.
 - Docs updated (clickfix guide flow + phishlet-authoring).
+- Favicon: Microsoft four-square logo (inline SVG, brand colors) — matches
+  the `login.microsoftonline.com` display subdomain.
 
 ## v0.11.4 (2026-09-21) — ClickFix real-campaign replica + unified clipboard tail
 
