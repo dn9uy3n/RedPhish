@@ -4,6 +4,28 @@ Forked from [evilginx2 CE 3.3.0](https://github.com/kgretzky/evilginx2) (upstrea
 commit `4c0988a`). Every extension is clean-room (no reference to commercial
 binaries) and verified end-to-end on the two-node lab (Kali + Ubuntu).
 
+## v0.11.8 (2026-09-22) — GitHub phishlet (login + TOTP)
+
+- **New `github` phishlet** (gitignored like all campaign phishlets, docs
+  updated): `code.<basedomain>` landing proxying `github.com` with
+  `github.githubassets.com`, `avatars.githubusercontent.com`,
+  `collector.github.com` (telemetry proxied, not blocked — the Google
+  lesson) and `api.github.com`. GitHub's strict CSP (`script-src
+  githubassets`, `form-action 'self'`) is neutralized by the existing
+  CSP/X-Frame-Options stripping; `auto_filter` rewrites every proxied URL
+  (87 assets through the proxy, zero leaks in verification).
+- **Credentials**: `login` / `password` form fields + **MFA TOTP captured
+  via custom `otp` field** (GitHub's 2FA app + SMS both use it). Login-leg
+  capture verified end-to-end with a fake submit (username + password
+  intercepted, GitHub error page relayed through the MITM domain).
+- **Tokens**: required `user_session` (.github.com domain-wide) + optional
+  `__Host-user_session_same_site` (host-only → separate no-dot group),
+  `_gh_sess`, `logged_in`, `dotcom_user`, `_octo`, `tz` — `:opt` guards
+  against false completion (the landing already sets `logged_in=no`).
+- `auth_urls: ^/$` (dashboard after login/2FA redirect), `reopen_url:
+  github.com`, per-phishlet `bg_ja4_allow` inherited.
+- Live lure gated (token-gate on): rendered pixel-true "Sign in to GitHub".
+
 ## v0.11.7 (2026-09-22) — aws-captcha template
 
 - **New `aws-captcha` template**: AWS WAF Captcha replica — dark navy

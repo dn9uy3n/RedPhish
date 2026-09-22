@@ -20,6 +20,7 @@ Evilginx Pro-class features clean-room for internal / air-gapped environments.
 |---|---|
 | `ms365` | ✅ production-ready — work + consumer capture, mailbox reuse, token-gate, CSD hardening (Safe Browsing bypass field-verified) |
 | `google` | ✅ production-ready via **real-browser relay** — defeats origin-bound botguard; real-account capture with number-match 2FA; cookie replay into Gmail verified |
+| `github` | 🧪 in testing — login + TOTP (`otp`) capture, `user_session` + `__Host-user_session_same_site` tokens, CSP stripped, auto-filter rewriting; login-leg capture verified end-to-end, 2FA leg awaiting a test account |
 
 ### ClickFix templates
 

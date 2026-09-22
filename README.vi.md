@@ -20,6 +20,7 @@ clean-room các tính năng cấp Evilginx Pro cho môi trường nội bộ / a
 |---|---|
 | `ms365` | ✅ production-ready — work + consumer capture, mailbox reuse, token-gate, CSD hardening (bypass Safe Browsing verify thực chiến) |
 | `google` | ✅ production-ready qua **real-browser relay** — vượt botguard gắn origin; capture account thật kèm number-match 2FA; replay cookie mở Gmail verified |
+| `github` | 🧪 đang test — capture login + TOTP (`otp`), token `user_session` + `__Host-user_session_same_site`, CSP strip + auto-filter; leg login đã verify end-to-end, leg 2FA chờ account test |
 
 ### Template ClickFix
 
