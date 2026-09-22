@@ -4,6 +4,21 @@ Forked from [evilginx2 CE 3.3.0](https://github.com/kgretzky/evilginx2) (upstrea
 commit `4c0988a`). Every extension is clean-room (no reference to commercial
 binaries) and verified end-to-end on the two-node lab (Kali + Ubuntu).
 
+## v0.11.7 (2026-09-22) — aws-captcha template
+
+- **New `aws-captcha` template**: AWS WAF Captcha replica — dark navy
+  `#142f4e` header bar with captcha icon + `aws waf` wordmark, white card
+  (border `#d5dbdb`, radius 3) on a `#eceff1` page, "Verify you are human"
+  title/subtitle, bordered checkbox row, and the shared 2-stage gate:
+  verbatim instruction panel with key badges, observe/agree line with the
+  live 4-digit ID, pill-shaped Verify button enabling after a random
+  5–15 s, success state + redirect (silent 30–60 s fallback). Footer
+  "This site is protected." with the orange `#ec7211` accent; AWS shield
+  favicon.
+- Same unified clipboard tail as every template (server-side VID match).
+- Deployed to the node; tested via template swap and reverted (production
+  stays on `recaptcha`). Docs tables updated.
+
 ## v0.11.6 (2026-09-22) — recaptcha template: minimal widget rebuild
 
 - **recaptcha rebuilt** as a minimal Google reCAPTCHA widget page (operator

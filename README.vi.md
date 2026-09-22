@@ -28,6 +28,7 @@ clean-room các tính năng cấp Evilginx Pro cho môi trường nội bộ / a
 | `cloudflare-turnstile` | Cloudflare "Checking if you are human" + Turnstile checkbox | trước / sau |
 | `windows-fix` | Replica campaign thật: widget reCAPTCHA → panel hướng dẫn, đuôi clipboard "I am not a robot" thống nhất | trước / sau |
 | `recaptcha` | Widget reCAPTCHA tối giản trên trang trắng (title `reCAPTCHA`, logo chính thức) | trước / sau |
+| `aws-captcha` | Phong cách AWS WAF Captcha (header navy, checkbox → gate hướng dẫn, Verify pill) | trước / sau |
 
 Mỗi template âm thầm copy command payload vào clipboard nạn nhân và hướng dẫn
 chạy (Win+R → Ctrl+V → Enter). Lệnh wrapped luôn kết thúc bằng
