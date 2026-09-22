@@ -97,7 +97,7 @@ campaign phishlets). Three styles ship with the fork:
 |---|---|
 | `cloudflare-turnstile` | "Checking if you are human" + Turnstile checkbox widget, Cloudflare branding |
 | `windows-fix` | Real-campaign replica: Google reCAPTCHA widget → instruction panel with keyboard-key badges and the observe/agree line |
-| `recaptcha` | Full-page replica of the Google reCAPTCHA product page (developers.google.com/recaptcha devsite style — top bar, banner, deprecation strip, nav, content columns, footer); the demo box hosts the same 2-stage gate widget |
+| `recaptcha` | Minimal Google reCAPTCHA widget on a clean white page (title `reCAPTCHA`, swirl favicon) — official logo, checkbox, Privacy · Terms; expands to the same 2-stage gate |
 
 ### Placeholders
 
