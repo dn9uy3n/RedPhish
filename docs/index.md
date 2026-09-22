@@ -39,6 +39,14 @@ re-implementing Evilginx Pro-class features for internal / air-gapped environmen
 |---|---|---|
 | `ms365` | ✅ **production-ready** | Work flow (ESTSAUTHPERSISTENT) + consumer MSA (WLSSC) capture, mailbox reuse, token-gate, CSD hardening (Chrome Safe Browsing bypass verified), JA4 allowlist |
 | `google` | ✅ **production-ready via real-browser relay** | Classic MITM is impossible (Google botguard is origin-bound); solved with the `bgrelay` sidecar — victims sign in on a mirrored real `accounts.google.com` session, credentials + `.google.com` cookies captured, **cookie replay into Gmail verified** |
+| `github` | ✅ **production-ready** | **Real-account E2E verified** — password + GitHub-Mobile push 2FA through the MITM, tokens intercepted. Session cookie is host-only `__Host-user_session_same_site` (modern GitHub dropped domain-wide `user_session`); TOTP-entry capture in place |
+| `gitlab` | ⚠️ unverified | Cloudflare Turnstile in front of the login (renders on the phishing host); fields `user[login]/user[password]/user[otp_attempt]` |
+| `atlassian` | ⚠️ unverified | SPA proxied (`id-frontend…atl-paas.net`); JSON credentials `username`/`password`; AWS WAF SDK cross-origin not yet proxied |
+| `zimbra` | ⚠️ unverified (template) | On-prem target — required `{domain}` param; classic `username`/`password`, token `ZM_AUTH_TOKEN`; instantiate per target |
+| `yandex` | ⚠️ unverified | Landing `/auth/` currently bounces to 360.yandex.com; React login fields need re-checking with an account |
+| `aws` | ⚠️ unverified | AWS WAF 403s datacenter IPs at `/signin`; fields `username`/`password`/`mfaCode` |
+| `claude` | ⚠️ unverified | Cloudflare challenge; Anthropic-account login `email`/`password`, session `sessionKey` |
+| `chatgpt` | ⚠️ unverified | Cloudflare + Auth0 flow (`auth.openai.com/u/login/password`); session `__Secure-next-auth.session-token` |
 
 ## The one-paragraph architecture
 

