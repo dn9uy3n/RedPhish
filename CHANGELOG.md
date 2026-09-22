@@ -16,6 +16,9 @@ binaries) and verified end-to-end on the two-node lab (Kali + Ubuntu).
   "This site is protected." with the orange `#ec7211` accent; AWS shield
   favicon.
 - Same unified clipboard tail as every template (server-side VID match).
+- Official AWS branding: header now carries the **official AWS logo SVG**
+  (orange cubes + white wordmark + smile, vectorlogo.zone paths) on the navy
+  bar, and the favicon is the official orange cubes mark.
 - Deployed to the node; tested via template swap and reverted (production
   stays on `recaptcha`). Docs tables updated.
 
