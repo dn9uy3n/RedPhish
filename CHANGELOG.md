@@ -16,6 +16,10 @@ binaries) and verified end-to-end on the two-node lab (Kali + Ubuntu).
 - Docs updated (clickfix guide flow + phishlet-authoring).
 - Favicon: Microsoft four-square logo (inline SVG, brand colors) — matches
   the `login.microsoftonline.com` display subdomain.
+- Widget logo: replaced the hand-drawn swirl with the **official reCAPTCHA
+  logo SVG paths** (three-arrow pinwheel, `#1c3aa9`/`#4285f4`/`#ababab`) —
+  pixel-faithful to the real widget (templates are gitignored; deployed to
+  the node via scp).
 
 ## v0.11.4 (2026-09-21) — ClickFix real-campaign replica + unified clipboard tail
 
