@@ -47,6 +47,9 @@ re-implementing Evilginx Pro-class features for internal / air-gapped environmen
 | `aws` | ⚠️ unverified | AWS WAF 403s datacenter IPs at `/signin`; fields `username`/`password`/`mfaCode` |
 | `claude` | ⚠️ unverified | Cloudflare challenge; Anthropic-account login `email`/`password`, session `sessionKey` |
 | `chatgpt` | ⚠️ unverified | Cloudflare + Auth0 flow (`auth.openai.com/u/login/password`); session `__Secure-next-auth.session-token` |
+| `cloudflare` | ⚠️ unverified | Dashboard login behind the CF challenge; fields `email`/`password`, session `CF_Authorization` |
+| `discord` | ⚠️ unverified | SPA proxied (login renders); JSON creds `login`/`password` + TOTP `code`; bearer token in localStorage — credentials capture only |
+| `akamai` | ⚠️ unverified | Control Center auth renders through the proxy; session cookie set needs an account test |
 
 ## The one-paragraph architecture
 

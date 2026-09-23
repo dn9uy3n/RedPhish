@@ -28,6 +28,9 @@ clean-room các tính năng cấp Evilginx Pro cho môi trường nội bộ / a
 | `aws` | ⚠️ chưa verify — AWS WAF 403 với IP datacenter ở `/signin`; field `username`/`password`/`mfaCode` |
 | `claude` | ⚠️ chưa verify — Cloudflare challenge; login Anthropic account `email`/`password`, session `sessionKey` |
 | `chatgpt` | ⚠️ chưa verify — Cloudflare + flow Auth0 (`auth.openai.com/u/login/password`); session `__Secure-next-auth.session-token` |
+| `cloudflare` | ⚠️ chưa verify — dashboard login sau CF challenge; field `email`/`password`, session `CF_Authorization` |
+| `discord` | ⚠️ chưa verify — SPA proxy (login render qua); creds JSON `login`/`password` + TOTP `code`; bearer token nằm localStorage — chỉ capture credentials |
+| `akamai` | ⚠️ chưa verify — Control Center auth render qua proxy (`username`/`password`); cookie phiên cần account test |
 
 ### Template ClickFix
 

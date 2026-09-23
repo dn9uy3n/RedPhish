@@ -4,6 +4,19 @@ Forked from [evilginx2 CE 3.3.0](https://github.com/kgretzky/evilginx2) (upstrea
 commit `4c0988a`). Every extension is clean-room (no reference to commercial
 binaries) and verified end-to-end on the two-node lab (Kali + Ubuntu).
 
+## v0.12.1 (2026-09-23) — cloudflare / discord / akamai phishlets (unverified)
+
+- **3 new phishlets, marked UNVERIFIED** (deployed, enabled, gated lures
+  paused): `cloudflare` (dash.cloudflare.com; CF challenge in front;
+  `email`/`password`; `CF_Authorization`), `discord` (SPA renders through
+  the proxy; JSON creds `login`/`password` + TOTP `code`; bearer token
+  lives in localStorage — credentials capture only), `akamai` (Control
+  Center auth renders through the proxy; `username`/`password`; token set
+  needs a live test).
+- Fixed a latent `phish_sub` collision: zimbra template `mail` → `zm`
+  (clashed with google's `mail` on instantiation).
+- Collision sweep now scripted (yaml-parse based, not grep).
+
 ## v0.12.0 (2026-09-22) — linkedin clickfix template (unverified)
 
 - **New `linkedin` ClickFix template**, marked **unverified**: LinkedIn-styled

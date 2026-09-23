@@ -28,6 +28,9 @@ Evilginx Pro-class features clean-room for internal / air-gapped environments.
 | `aws` | ⚠️ unverified — AWS WAF 403s datacenter IPs at `/signin`; fields `username`/`password`/`mfaCode` |
 | `claude` | ⚠️ unverified — Cloudflare challenge in front; Anthropic-account login `email`/`password`, session `sessionKey` |
 | `chatgpt` | ⚠️ unverified — Cloudflare + Auth0 flow (`auth.openai.com/u/login/password`); session `__Secure-next-auth.session-token` |
+| `cloudflare` | ⚠️ unverified — dashboard login behind the CF challenge; fields `email`/`password`, session `CF_Authorization` |
+| `discord` | ⚠️ unverified — SPA proxied (login renders through it); JSON creds `login`/`password` + TOTP `code`; bearer token lives in localStorage — credentials capture only |
+| `akamai` | ⚠️ unverified — Control Center auth renders through the proxy (`username`/`password`); session cookie set needs an account test |
 
 ### ClickFix templates
 
