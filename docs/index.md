@@ -45,7 +45,7 @@ re-implementing Evilginx Pro-class features for internal / air-gapped environmen
 | `zimbra` | ⚠️ unverified (template) | On-prem target — required `{domain}` param; classic `username`/`password`, token `ZM_AUTH_TOKEN`; instantiate per target |
 | `yandex` | ⚠️ unverified | Landing `/auth/` currently bounces to 360.yandex.com; React login fields need re-checking with an account |
 | `aws` | ⚠️ unverified | AWS WAF 403s datacenter IPs at `/signin`; fields `username`/`password`/`mfaCode` |
-| `claude` | ⚠️ unverified | Cloudflare challenge; Anthropic-account login `email`/`password`, session `sessionKey` |
+| `claude` | ✅ **verified E2E** | Login-code flow (email + 6-digit code, no password), JSON creds; `sessionKey` captured and replayed into a logged-in session; CF-protected — requires `proxy: true` + residential + `tlsfp: chrome` |
 | `chatgpt` | ⚠️ unverified | Cloudflare + Auth0 flow (`auth.openai.com/u/login/password`); session `__Secure-next-auth.session-token` |
 | `cloudflare` | ⚠️ unverified | Dashboard login behind the CF challenge; fields `email`/`password`, session `CF_Authorization` |
 | `discord` | ⚠️ unverified | SPA proxied (login renders); JSON creds `login`/`password` + TOTP `code`; bearer token in localStorage — credentials capture only |

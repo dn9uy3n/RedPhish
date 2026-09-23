@@ -4,6 +4,23 @@ Forked from [evilginx2 CE 3.3.0](https://github.com/kgretzky/evilginx2) (upstrea
 commit `4c0988a`). Every extension is clean-room (no reference to commercial
 binaries) and verified end-to-end on the two-node lab (Kali + Ubuntu).
 
+## v0.12.3 (2026-09-23) — Claude verified E2E (login-code flow)
+
+- **Claude promoted to verified**: live-account run through the lure —
+  email + 6-digit **login code** (Claude consumer accounts use code login,
+  not passwords) POSTed as JSON and captured in the debug stream; full
+  post-login Claude usage continued through the proxy. The `sessionKey`
+  cookie (`sk-ant-sid02-…`, Domain `.claude.ai`) was captured and
+  **replayed into a logged-in session** (fresh browser, chats UI loaded).
+- Phishlet fixed from the live evidence: credentials are now JSON-typed
+  (`email_address` + `code|password` alternation); auth_tokens moved to the
+  dotted `.claude.ai` group (the no-dot group never matched — first live
+  cookie-group lesson since GitHub's host-only case, inverted); auth_urls
+  include `/chats`.
+- CF stack that made it work: `proxy: true` + residential exit +
+  `tlsfp: chrome` (uTLS) — Cloudflare served no challenge to the patched
+  headful oracle.
+
 ## v0.12.2 (2026-09-23) — per-phishlet upstream proxy forcing
 
 - **New phishlet YAML option `proxy: true`**: forces the phishlet's whole
