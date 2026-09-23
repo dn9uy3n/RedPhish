@@ -26,7 +26,7 @@ clean-room các tính năng cấp Evilginx Pro cho môi trường nội bộ / a
 | `zimbra` | ⚠️ chưa verify — template on-prem với param bắt buộc `{domain}`; field cổ điển `username`/`password`, token `ZM_AUTH_TOKEN` |
 | `yandex` | ⚠️ chưa verify — landing `/auth/` hiện bounce sang 360.yandex.com; field React login cần bắt lại bằng account test |
 | `aws` | ⚠️ chưa verify — AWS WAF 403 với IP datacenter ở `/signin`; field `username`/`password`/`mfaCode` |
-| `claude` | ⚠️ chưa verify — Cloudflare challenge; login Anthropic account `email`/`password`, session `sessionKey` |
+| `claude` | ✅ **verified E2E** — flow login-code (email + mã 6 số, không password) capture JSON; token `sessionKey` bắt và **replay mở phiên logged-in**; sau Cloudflare — cần `proxy: true` + residential + `tlsfp: chrome` |
 | `chatgpt` | ⚠️ chưa verify — Cloudflare + flow Auth0 (`auth.openai.com/u/login/password`); session `__Secure-next-auth.session-token` |
 | `cloudflare` | ⚠️ chưa verify — dashboard login sau CF challenge; field `email`/`password`, session `CF_Authorization` |
 | `discord` | ⚠️ chưa verify — SPA proxy (login render qua); creds JSON `login`/`password` + TOTP `code`; bearer token nằm localStorage — chỉ capture credentials |
