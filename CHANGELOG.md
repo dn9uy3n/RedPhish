@@ -16,6 +16,13 @@ binaries) and verified end-to-end on the two-node lab (Kali + Ubuntu).
   required-token check the response side uses) before finishing — verified
   on the node: no more `detected authorization URL` lines at pre-login
   paths.
+- chatgpt follow-up: the auth page's JS bundle loads from
+  `auth-cdn.oaistatic.com` — unproxied, its absolute `auth.openai.com`
+  endpoints escaped the MITM and the code submit died on CORS
+  ("Something went wrong. Please try again"). Added proxy hosts
+  `goaicdn`/`gocdn`/`gsent` (auth-cdn, cdn, sentinel) — verified the
+  email-verification page now loads 100% through phishing hosts (36 gauth +
+  31 goaicdn + 4 gsent, zero origin leaks).
 - chatgpt auth_urls tightened to post-login-only paths
   (`^/api/auth/callback`, `^/backend-api/`) as defense in depth, username
   capture extended with `login_hint` (new ChatGPT login modal field).
