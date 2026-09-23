@@ -4,6 +4,22 @@ Forked from [evilginx2 CE 3.3.0](https://github.com/kgretzky/evilginx2) (upstrea
 commit `4c0988a`). Every extension is clean-room (no reference to commercial
 binaries) and verified end-to-end on the two-node lab (Kali + Ubuntu).
 
+## v0.12.4 (2026-09-23) — false-completion guard on auth_urls (chatgpt incident)
+
+- **Bug (all phishlets)**: the request-side auth_urls hook finished a
+  session on URL match ALONE — no token check. A phishlet whose auth_urls
+  matched a pre-login path (chatgpt `^/(c/|auth/login|)$` matched the
+  landing and the marketing root) completed the session on the first
+  request, breaking the login flow mid-way (operator saw an error right
+  after "Continue with password").
+- **Fix**: the hook now requires `AllCookieAuthTokensCaptured` (the same
+  required-token check the response side uses) before finishing — verified
+  on the node: no more `detected authorization URL` lines at pre-login
+  paths.
+- chatgpt auth_urls tightened to post-login-only paths
+  (`^/api/auth/callback`, `^/backend-api/`) as defense in depth, username
+  capture extended with `login_hint` (new ChatGPT login modal field).
+
 ## v0.12.3 (2026-09-23) — Claude verified E2E (login-code flow)
 
 - **Claude promoted to verified**: live-account run through the lure —

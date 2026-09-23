@@ -68,6 +68,7 @@ auth_tokens:                         # PILLAR 3: session-completing cookies
 | `login.domain` must be an exact `orig_sub`+`domain` combination from `proxy_hosts` | validator rejects it otherwise (aws: `signin` + `amazon.com` = `signin.amazon.com` ≠ `signin.aws.amazon.com` — use domain `aws.amazon.com`) |
 | Host-only cookies get a **no-dot** auth_tokens group | `Set-Cookie` without a `Domain` attr (all `__Host-*`) lands on the bare hostname; lookup is exact-string — `.github.com` groups never see them (GitHub lesson: session = `__Host-user_session_same_site` on `github.com`) |
 | Cloudflare-protected origin → `proxy: true` | CF challenges datacenter egress IPs in a loop the victim can never clear; the flag forces the phishlet's upstream through the residential exit |
+| `auth_urls` must match POST-LOGIN paths only | the request-side hook finishes a session on URL match (now token-gated, but keep URLs post-login anyway) — a landing/root path in the list once completed a session on arrival and broke the flow |
 | Verify the token list against a LIVE login before shipping | providers silently change cookies — GitHub dropped domain-wide `user_session` entirely; make non-critical cookies `:opt` so completion can't hang |
 
 ## Per-phishlet botguard JA4 exceptions
