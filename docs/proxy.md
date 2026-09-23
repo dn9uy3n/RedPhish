@@ -49,11 +49,25 @@ credentials.
 
 ## How routing works
 
-The dialer matches the **destination domain suffix** against `routes`:
+The dialer checks, in order:
+
+1. **Per-phishlet forcing** — if the destination host belongs to an enabled
+   phishlet that sets `proxy: true` in its YAML, the connection always goes
+   through the exit proxy (no suffix matching needed):
+   ```yaml
+   proxy: true        # force this phishlet's whole upstream through the exit
+   ```
+   Use it for origins that reject datacenter egress IPs outright
+   (Cloudflare-protected logins: claude, gitlab, chatgpt, cloudflare dash).
+   Hosts shared by several phishlets route through the proxy if ANY owner
+   forces it. Hot-reload applies immediately — the selector reads the live
+   phishlet state on every dial (debug log: `via exit proxy (phishlet X force)`).
+2. **Global domain-suffix `routes`** — everything else matches the suffix list:
 
 ```
-google phishlet fetch of accounts.google.com  → suffix match → SOCKS5 residential exit
-ms365 phishlet fetch of login.live.com        → no match    → node IP (direct)
+claude phishlet fetch of claude.ai        → proxy: true force → SOCKS5 residential exit
+google phishlet fetch of accounts.google.com → suffix match  → SOCKS5 residential exit
+ms365 phishlet fetch of login.live.com    → no match          → node IP (direct)
 ```
 
 Both the proxy transport and the CONNECT path honor the selector (the HTTP client uses the
@@ -63,8 +77,14 @@ proxied dialer for CONNECT when a proxy is set).
 
 | Target | Egress | Why |
 |---|---|---|
-| Google | residential SOCKS5 | datacenter exits are pre-flagged; residential passes the lookup |
+| Google | residential SOCKS5 (routes) | datacenter exits are pre-flagged; residential passes the lookup |
 | ms365 (corporate/work accounts) | **direct** | a residential login on a work account looks *more* suspicious to Entra Conditional Access |
+| Cloudflare-protected logins (claude, gitlab, chatgpt, cloudflare) | residential SOCKS5 (`proxy: true`) | CF challenges datacenter IPs in a loop the victim can never clear |
+
+Keep `tlsfp: chrome` set whenever the exit is used — uTLS presents a Chrome
+ClientHello from the node so the origin sees a consistent (residential IP +
+Chrome TLS) story. **Check `GET /proxy` still shows `tlsfp` after any proxy
+edit** — the field can silently end up empty, which disables uTLS entirely.
 
 Verify after configuring: render the phishlet's identifier page and check the egress IP
 the identity provider would see (a routed fetch through a residential exit should show

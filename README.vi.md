@@ -56,7 +56,7 @@ gitignored (riêng cho campaign, giống phishlet). Xem
 - **Botguard chống bot** — JA4 TLS allowlist, trang decoy cho scanner/curl
 - **Lure token-gate** — thiếu `?t=` → redirect benign; Safe Browsing/crawler không bao giờ thấy trang login
 - **CSD hardening** — bypass Chrome client-side phishing detection (verify thực chiến)
-- **Upstream proxy routing** — egress theo suffix domain (Google → residential, MS365 → direct)
+- **Upstream proxy routing** — egress theo suffix domain **hoặc per-phishlet `proxy: true`** (Google → residential, MS365 → direct, login sau Cloudflare → ép qua residential)
 - **Google real-browser relay** — mirror của phiên `accounts.google.com` thật; mirror 2× nét native, click-relay, capture `{email, password, cookies}`
 - **ClickFix gate** — trang fake captcha social-engineering (clipboard payload) với vị trí before/after; hardening chống content classification
 - **MCP server** — AI agent (Claude/ZCode) điều hành node qua tools: phishlets, lures, sessions, proxy, relay — kể cả mở session capture trong trình duyệt thật ([docs/mcp](https://dn9uy3n.github.io/RedPhish/mcp.html), skill agent trong [`skills/`](skills/))

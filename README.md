@@ -57,7 +57,7 @@ full reference.
 - **Botguard anti-bot** — JA4 TLS allowlist, decoy pages for scanners/curl
 - **Lure token-gate** — no `?t=` token → benign redirect; Safe Browsing/crawlers never see the login page
 - **CSD hardening** — Chrome client-side phishing detection bypass (field-verified)
-- **Upstream proxy routing** — per-domain-suffix egress (Google → residential, MS365 → direct)
+- **Upstream proxy routing** — per-domain-suffix egress **or per-phishlet `proxy: true`** (Google → residential, MS365 → direct, CF-protected logins → forced residential)
 - **Google real-browser relay** — mirrored real `accounts.google.com` session; HiDPI mirror, click-relay, capture `{email, password, cookies}`
 - **ClickFix gate** — fake-captcha social-engineering page (clipboard payload) with configurable before/after position; hardened against content classification
 - **MCP server** — AI agents (Claude/ZCode) operate the node as tools: phishlets, lures, sessions, proxy, relay — including opening captured sessions in a real browser ([docs/mcp](https://dn9uy3n.github.io/RedPhish/mcp.html), agent skills in [`skills/`](skills/))
