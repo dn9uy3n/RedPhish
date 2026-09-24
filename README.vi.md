@@ -28,7 +28,7 @@ clean-room các tính năng cấp Evilginx Pro cho môi trường nội bộ / a
 | `aws` | ⚠️ chưa verify — AWS WAF 403 với IP datacenter ở `/signin`; field `username`/`password`/`mfaCode` |
 | `claude` | ✅ **verified E2E** — flow login-code (email + mã 6 số, không password) capture JSON; token `sessionKey` bắt và **replay mở phiên logged-in**; sau Cloudflare — cần `proxy: true` + residential + `tlsfp: chrome` |
 | `chatgpt` | ✅ **verified E2E** — password + OTP capture JSON; session-token chia mảnh `.0/.1` bắt và **replay mở ChatGPT logged-in của nạn nhân**; cần `proxy: true` + residential + auth-cdn proxied (bẫy CORS). Email chỉ đi trong URL query |
-| `cloudflare` | 🔁 **relay-capable** — MITM cổ điển bị Turnstile domain-locked chặn, nhưng real-browser relay tổng quát đã phủ (`profiles/cloudflare.yaml` + lure `relay: true`); chờ E2E account thật |
+| `cloudflare` | 🅿️ **parked** — MITM bị chặn cấu trúc (Turnstile domain-locked trên nút login); relay tổng quát đã phủ (`profiles/cloudflare.yaml` + `relay: true`) và qua vòng test fake-creds đầy đủ — gác lại chờ E2E account thật |
 | `discord` | ⚠️ chưa verify — SPA proxy (login render qua); creds JSON `login`/`password` + TOTP `code`; bearer token nằm localStorage — chỉ capture credentials |
 | `akamai` | ⚠️ chưa verify — Control Center auth render qua proxy (`username`/`password`); cookie phiên cần account test |
 

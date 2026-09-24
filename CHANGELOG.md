@@ -27,6 +27,18 @@ binaries) and verified end-to-end on the two-node lab (Kali + Ubuntu).
   dash.cloudflare.com (Turnstile passes on the real domain), Cloudflare
   branding + mirror + input overlay rendered on the phishing host.
 - bgrelay needs PyYAML (installed into the sidecar venv); unit restarted.
+- Follow-ups from operator field-testing: the overlay now mirrors the field
+  the flow is waiting for (`_want_kind` — single-card forms previously
+  showed the password overlay while waiting for email); **`mirror: full`**
+  profile mode streams the whole viewport instead of the card crop
+  (2-column logins look 1:1 with the origin — side-by-side verified);
+  overlay label/border are `pointer-events:none` and clicking inside the
+  active input box focuses the overlay (clicks previously fell through to
+  the mirrored image); profiles gain `classify.reload` strings and the
+  generic flow auto-reloads the real page (max 2) on verification errors
+  (Cloudflare Turnstile execution failures).
+- Cloudflare relay parked pending a real-account E2E (the MITM phishlet
+  stays documented as structurally blocked).
 
 ## v0.12.6 (2026-09-23) — cloudflare phishlet: structurally blocked
 
