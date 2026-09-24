@@ -47,7 +47,7 @@ re-implementing Evilginx Pro-class features for internal / air-gapped environmen
 | `aws` | ⚠️ unverified | AWS WAF 403s datacenter IPs at `/signin`; fields `username`/`password`/`mfaCode` |
 | `claude` | ✅ **verified E2E** | Login-code flow (email + 6-digit code, no password), JSON creds; `sessionKey` captured and replayed into a logged-in session; CF-protected — requires `proxy: true` + residential + `tlsfp: chrome` |
 | `chatgpt` | ✅ **verified E2E** | Password + OTP captured as JSON; chunked session-token `.0/.1` replayed into the victim's logged-in ChatGPT; CF + auth-cdn CORS trap documented |
-| `cloudflare` | ⚠️ unverified | Dashboard login behind the CF challenge; fields `email`/`password`, session `CF_Authorization` |
+| `cloudflare` | ❌ **blocked (structural)** | Login button bound to a domain-locked Turnstile — challenge from a foreign origin is rejected (400) and credentials are never submitted. Needs a relay approach |
 | `discord` | ⚠️ unverified | SPA proxied (login renders); JSON creds `login`/`password` + TOTP `code`; bearer token in localStorage — credentials capture only |
 | `akamai` | ⚠️ unverified | Control Center auth renders through the proxy; session cookie set needs an account test |
 

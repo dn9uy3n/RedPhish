@@ -28,7 +28,7 @@ Evilginx Pro-class features clean-room for internal / air-gapped environments.
 | `aws` | ⚠️ unverified — AWS WAF 403s datacenter IPs at `/signin`; fields `username`/`password`/`mfaCode` |
 | `claude` | ✅ **verified E2E** — login-code flow (email + 6-digit code, no password) captured as JSON creds; `sessionKey` token captured and **replayed into a logged-in session**; CF-protected — needs `proxy: true` + residential + `tlsfp: chrome` |
 | `chatgpt` | ✅ **verified E2E** — password + OTP captured as JSON; chunked `__Secure-next-auth.session-token.0/.1` captured and **replayed into the victim's logged-in ChatGPT**; needs `proxy: true` + residential + auth-cdn proxied (CORS trap). Note: email travels in the URL query only |
-| `cloudflare` | ⚠️ unverified — dashboard login behind the CF challenge; fields `email`/`password`, session `CF_Authorization` |
+| `cloudflare` | ❌ **blocked (structural)** — the login button is bound to a **domain-locked Turnstile**: challenge POSTs from a foreign origin get 400 and the SPA never submits credentials. Same class as Google botguard; needs a real-browser relay approach |
 | `discord` | ⚠️ unverified — SPA proxied (login renders through it); JSON creds `login`/`password` + TOTP `code`; bearer token lives in localStorage — credentials capture only |
 | `akamai` | ⚠️ unverified — Control Center auth renders through the proxy (`username`/`password`); session cookie set needs an account test |
 

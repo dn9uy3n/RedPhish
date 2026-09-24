@@ -4,6 +4,18 @@ Forked from [evilginx2 CE 3.3.0](https://github.com/kgretzky/evilginx2) (upstrea
 commit `4c0988a`). Every extension is clean-room (no reference to commercial
 binaries) and verified end-to-end on the two-node lab (Kali + Ubuntu).
 
+## v0.12.6 (2026-09-23) — cloudflare phishlet: structurally blocked
+
+- Field-tested the `cloudflare` phishlet: the login page renders pixel-true
+  through the proxy (residential + uTLS, no challenge) with working
+  `email`/`password` fields — but the Sign-in button is bound to a
+  **domain-locked Turnstile**: the challenge-platform requests leave the
+  browser with the phishing origin and Cloudflare answers 400
+  ("No available adapters"), so the SPA never POSTs the credentials.
+  Same defense class as Google's origin-bound botguard — classic MITM
+  cannot pass; a real-browser relay (bgrelay pattern) would be required.
+  Lure paused; status marked blocked.
+
 ## v0.12.5 (2026-09-23) — ChatGPT verified E2E (password + OTP + replay)
 
 - **ChatGPT promoted to verified**: live full flow — password (`{"password":…}`
