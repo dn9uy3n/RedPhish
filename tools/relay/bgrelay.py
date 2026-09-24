@@ -903,9 +903,23 @@ class RelaySession(threading.Thread):
         hints = {"email": "Nhập email của bạn",
                  "password": "Nhập mật khẩu" + (f" của {self.email}" if self.email else ""),
                  "code": "Nhập mã xác minh"}
+        reloads = 0
         while time.time() < self.deadline:
             self._stream(pg)
             cls = self._classify(pg)
+            low = self._body(pg).lower()
+            if any(t in low for t in self.classify_map.get("reload", []))                     and reloads < 2:
+                reloads += 1
+                self.hint = "Đang làm mới trang, vui lòng chờ…"
+                print(f"[reload] {self.id}: verification error, reloading "
+                      f"({reloads}/2)", flush=True)
+                try:
+                    pg.reload(wait_until="load", timeout=45000)
+                except Exception:
+                    pass
+                time.sleep(4)
+                self._prefetch_assets(pg)
+                continue
             if cls == "done":
                 self._finish(pg, "done", "Đăng nhập thành công")
                 browser.close()

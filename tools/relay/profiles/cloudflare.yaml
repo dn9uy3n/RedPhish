@@ -18,6 +18,7 @@ card_selectors: ["form", "main", "[role=main]"]
 buttons:
   next: ["button[type='submit']", "button:has-text('Sign in')", "button:has-text('Log In')"]
 classify:
+  reload: ["problem with verification", "không thể xác minh", "vui lòng tải lại trang"]
   challenge: ["enter the code", "verification code", "mã xác minh", "two-factor", "2fa", "one-time code"]
   bad_account: ["user not found", "no account", "không tìm thấy tài khoản"]
   wrong_password: ["incorrect email or password", "wrong password", "mật khẩu không chính xác", "sai mật khẩu"]
