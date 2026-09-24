@@ -28,7 +28,7 @@ clean-room các tính năng cấp Evilginx Pro cho môi trường nội bộ / a
 | `aws` | ⚠️ chưa verify — AWS WAF 403 với IP datacenter ở `/signin`; field `username`/`password`/`mfaCode` |
 | `claude` | ✅ **verified E2E** — flow login-code (email + mã 6 số, không password) capture JSON; token `sessionKey` bắt và **replay mở phiên logged-in**; sau Cloudflare — cần `proxy: true` + residential + `tlsfp: chrome` |
 | `chatgpt` | ✅ **verified E2E** — password + OTP capture JSON; session-token chia mảnh `.0/.1` bắt và **replay mở ChatGPT logged-in của nạn nhân**; cần `proxy: true` + residential + auth-cdn proxied (bẫy CORS). Email chỉ đi trong URL query |
-| `cloudflare` | ❌ **blocked (cấu trúc)** — nút login bám **Turnstile khoá domain**: challenge từ origin lạ bị 400, SPA không bao giờ submit credentials. Cùng lớp với Google botguard; cần hướng real-browser relay |
+| `cloudflare` | 🔁 **relay-capable** — MITM cổ điển bị Turnstile domain-locked chặn, nhưng real-browser relay tổng quát đã phủ (`profiles/cloudflare.yaml` + lure `relay: true`); chờ E2E account thật |
 | `discord` | ⚠️ chưa verify — SPA proxy (login render qua); creds JSON `login`/`password` + TOTP `code`; bearer token nằm localStorage — chỉ capture credentials |
 | `akamai` | ⚠️ chưa verify — Control Center auth render qua proxy (`username`/`password`); cookie phiên cần account test |
 
@@ -57,7 +57,7 @@ gitignored (riêng cho campaign, giống phishlet). Xem
 - **Lure token-gate** — thiếu `?t=` → redirect benign; Safe Browsing/crawler không bao giờ thấy trang login
 - **CSD hardening** — bypass Chrome client-side phishing detection (verify thực chiến)
 - **Upstream proxy routing** — egress theo suffix domain **hoặc per-phishlet `proxy: true`** (Google → residential, MS365 → direct, login sau Cloudflare → ép qua residential)
-- **Google real-browser relay** — mirror của phiên `accounts.google.com` thật; mirror 2× nét native, click-relay, capture `{email, password, cookies}`
+- **Real-browser relay (mọi target)** — mirror login thật cho phòng thủ gắn origin (Google botguard, Turnstile domain-locked của Cloudflare): profile khai báo `profiles/<phishlet>.yaml` + công tắc lure một flag (`relay: true`)
 - **ClickFix gate** — trang fake captcha social-engineering (clipboard payload) với vị trí before/after; hardening chống content classification
 - **MCP server** — AI agent (Claude/ZCode) điều hành node qua tools: phishlets, lures, sessions, proxy, relay — kể cả mở session capture trong trình duyệt thật ([docs/mcp](https://dn9uy3n.github.io/RedPhish/mcp.html), skill agent trong [`skills/`](skills/))
 - **JS obfuscation, AES lure params, multi-domain, bộ công cụ wildcard-cert, deploy offline**

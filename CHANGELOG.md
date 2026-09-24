@@ -4,6 +4,30 @@ Forked from [evilginx2 CE 3.3.0](https://github.com/kgretzky/evilginx2) (upstrea
 commit `4c0988a`). Every extension is clean-room (no reference to commercial
 binaries) and verified end-to-end on the two-node lab (Kali + Ubuntu).
 
+## v0.13.0 (2026-09-24) — real-browser relay generalized for ANY target
+
+- **Declarative relay profiles** (`tools/relay/profiles/<phishlet>.yaml`):
+  signin URL, input/button/card selectors, classification strings, cookie
+  domains, asset hosts, victim-page branding, reopen URL. Adding a relay
+  target = one YAML file, no code. `google.yaml` (flow: google) keeps the
+  dedicated state machine bit-for-bit; `cloudflare.yaml` (flow: generic)
+  ships as the first new target.
+- **Generic flow engine**: walks visible profile inputs (email → password →
+  code), handles single-card forms (fill email without submitting when a
+  password field is already present) and step wizards alike; done detection
+  requires the done-host AND no visible input (same-host signin pages no
+  longer false-complete — the cloudflare lesson).
+- **One-flag switching**: `PUT /lures/{id}` now accepts `relay` (terminal
+  `lures edit <id> relay=true`); `POST /lures` as before. The Go relay page
+  injects `window.__RELAY_TARGET__=<phishlet>` so the sidecar picks the
+  profile regardless of the lure URL.
+- **Victim page templated**: title/favicon/palette/button label/card
+  radius/footer + done-redirect come from the profile (`page:` block).
+- Verified live: lure #17 flipped to relay → sidecar opened the REAL
+  dash.cloudflare.com (Turnstile passes on the real domain), Cloudflare
+  branding + mirror + input overlay rendered on the phishing host.
+- bgrelay needs PyYAML (installed into the sidecar venv); unit restarted.
+
 ## v0.12.6 (2026-09-23) — cloudflare phishlet: structurally blocked
 
 - Field-tested the `cloudflare` phishlet: the login page renders pixel-true

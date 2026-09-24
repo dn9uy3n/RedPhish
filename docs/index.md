@@ -24,7 +24,7 @@ re-implementing Evilginx Pro-class features for internal / air-gapped environmen
 | [Evasion](evasion.md) | Every integrated evasion technique by defense layer — token-gate, botguard, CSD, uTLS, relay, infra — all field-verified |
 | [Operations guide](operations.md) | Day-2 operations: the `egconsole` command reference, phishlet switching, lure lifecycle, session & cookie export, mailbox reuse |
 | [Phishlet authoring](phishlet-authoring.md) | Writing phishlets: structure, auth-token capture, sub-filters, multi-domain rules, CSD hardening, token-gate |
-| [Google real-browser relay](google-relay.md) | The `bgrelay` sidecar that defeats origin-bound botguard: architecture, API, capture pipeline, session replay |
+| [Real-browser relay (any target)](relay.md) | The `bgrelay` sidecar defeats origin-bound botguard (Google) and domain-locked Turnstile (Cloudflare) for ANY phishlet via declarative profiles + a one-flag lure switch |
 | [ClickFix gate](clickfix.md) | Fake-captcha social engineering — clipboard payload with before/after position, detection-hardened templates |
 | [Upstream proxy](proxy.md) | Feature #17 — per-phishlet egress routing (residential exits, datacenter blocks) |
 | [egconsole](egconsole.md) | The remote operator interface — full command reference, workflows, quirks |

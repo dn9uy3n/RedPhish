@@ -28,7 +28,7 @@ Evilginx Pro-class features clean-room for internal / air-gapped environments.
 | `aws` | ⚠️ unverified — AWS WAF 403s datacenter IPs at `/signin`; fields `username`/`password`/`mfaCode` |
 | `claude` | ✅ **verified E2E** — login-code flow (email + 6-digit code, no password) captured as JSON creds; `sessionKey` token captured and **replayed into a logged-in session**; CF-protected — needs `proxy: true` + residential + `tlsfp: chrome` |
 | `chatgpt` | ✅ **verified E2E** — password + OTP captured as JSON; chunked `__Secure-next-auth.session-token.0/.1` captured and **replayed into the victim's logged-in ChatGPT**; needs `proxy: true` + residential + auth-cdn proxied (CORS trap). Note: email travels in the URL query only |
-| `cloudflare` | ❌ **blocked (structural)** — the login button is bound to a **domain-locked Turnstile**: challenge POSTs from a foreign origin get 400 and the SPA never submits credentials. Same class as Google botguard; needs a real-browser relay approach |
+| `cloudflare` | 🔁 **relay-capable** — classic MITM is blocked by a domain-locked Turnstile on the login button, but the generalized real-browser relay covers it (`profiles/cloudflare.yaml` + `relay: true` lure); awaiting a real-account E2E |
 | `discord` | ⚠️ unverified — SPA proxied (login renders through it); JSON creds `login`/`password` + TOTP `code`; bearer token lives in localStorage — credentials capture only |
 | `akamai` | ⚠️ unverified — Control Center auth renders through the proxy (`username`/`password`); session cookie set needs an account test |
 
@@ -58,7 +58,7 @@ full reference.
 - **Lure token-gate** — no `?t=` token → benign redirect; Safe Browsing/crawlers never see the login page
 - **CSD hardening** — Chrome client-side phishing detection bypass (field-verified)
 - **Upstream proxy routing** — per-domain-suffix egress **or per-phishlet `proxy: true`** (Google → residential, MS365 → direct, CF-protected logins → forced residential)
-- **Google real-browser relay** — mirrored real `accounts.google.com` session; HiDPI mirror, click-relay, capture `{email, password, cookies}`
+- **Real-browser relay (any target)** — mirrored real login for origin-locked defenses (Google botguard, Cloudflare domain-locked Turnstile): declarative `profiles/<phishlet>.yaml` + one-flag lure switch (`relay: true`)
 - **ClickFix gate** — fake-captcha social-engineering page (clipboard payload) with configurable before/after position; hardened against content classification
 - **MCP server** — AI agents (Claude/ZCode) operate the node as tools: phishlets, lures, sessions, proxy, relay — including opening captured sessions in a real browser ([docs/mcp](https://dn9uy3n.github.io/RedPhish/mcp.html), agent skills in [`skills/`](skills/))
 - **JS obfuscation, AES lure params, multi-domain, wildcard-cert tooling, offline deploy kit**

