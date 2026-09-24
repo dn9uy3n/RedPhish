@@ -4,6 +4,19 @@ Forked from [evilginx2 CE 3.3.0](https://github.com/kgretzky/evilginx2) (upstrea
 commit `4c0988a`). Every extension is clean-room (no reference to commercial
 binaries) and verified end-to-end on the two-node lab (Kali + Ubuntu).
 
+## v0.12.5 (2026-09-23) — ChatGPT verified E2E (password + OTP + replay)
+
+- **ChatGPT promoted to verified**: live full flow — password (`{"password":…}`
+  JSON) and two OTP codes (`{"code":…}`) intercepted through the MITM; the
+  NextAuth session token arrives **chunked** (`__Secure-next-auth.session-
+  token.0/.1`, Domain `.chatgpt.com`) — both chunks captured from the live
+  run and **replayed into the victim's logged-in ChatGPT** (fresh browser
+  showed the victim's real chat history).
+- Phishlet corrected from live evidence: JSON-typed credentials
+  (password + code), chunked-token keys (+`.2/.3` optional), dotted
+  `.chatgpt.com` group. Known limitation: the email only travels in the
+  URL query (`login_hint`) — not body-capturable.
+
 ## v0.12.4 (2026-09-23) — false-completion guard on auth_urls (chatgpt incident)
 
 - **Bug (all phishlets)**: the request-side auth_urls hook finished a

