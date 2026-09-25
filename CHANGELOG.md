@@ -133,6 +133,15 @@ binaries) and verified end-to-end on the two-node lab (Kali + Ubuntu).
   (clashed with google's `mail` on instantiation).
 - Collision sweep now scripted (yaml-parse based, not grep).
 
+## v0.13.1 (2026-09-25) — clickfix templates shipped in the repo
+
+- Operator-approved: the five verified ClickFix templates
+  (`cloudflare-turnstile`, `windows-fix`, `recaptcha`, `aws-captcha`,
+  `linkedin`) now ship in `src/clickfix/templates/` — the gitignore rule is
+  removed and the docs/skill no longer describe them as campaign-local.
+  Leak-swept before publishing (placeholders only; no campaign domains,
+  IPs or tokens). Phishlets remain gitignored.
+
 ## v0.12.1a (2026-09-25) — linkedin clickfix rebuilt to the operator reference (verified)
 
 - Rebuilt from the operator's reference mock: LinkedIn **guest header**

@@ -127,8 +127,8 @@ Every template shares the same wrapped clipboard command, ending in
 generated server-side per request and displayed on the page, so what the
 victim sees in the Run dialog matches the page (real-campaign replica).
 
-**Templates** are self-contained HTML in `clickfix/templates/` — gitignored,
-deployed to the node alongside phishlets. Placeholders: `{command_b64}`
+**Templates** are self-contained HTML in `src/clickfix/templates/` — shipped
+in the repo, deployed to the node alongside phishlets. Placeholders: `{command_b64}`
 (base64-encoded payload — preferred), `{command}` (legacy cleartext),
 `{redirect_url}` (post-verify target, substituted in both positions).
 

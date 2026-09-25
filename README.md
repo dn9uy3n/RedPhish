@@ -45,8 +45,8 @@ Evilginx Pro-class features clean-room for internal / air-gapped environments.
 Each template silently copies a command payload to the victim's clipboard and
 instructs them to run it (Win+R → Ctrl+V → Enter). The wrapped command always
 ends in `;'I am not a robot - reCAPTCHA Verification ID: XXXX'` — the 4-digit
-ID is random per request and matches the one shown on the page. Templates are
-gitignored (campaign-specific, like phishlets). See the
+ID is random per request and matches the one shown on the page. All five are
+verified and ship in the repo (`src/clickfix/templates/`). See the
 [ClickFix guide](https://dn9uy3n.github.io/RedPhish/clickfix.html) for the
 full reference.
 

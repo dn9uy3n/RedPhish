@@ -45,8 +45,8 @@ clean-room các tính năng cấp Evilginx Pro cho môi trường nội bộ / a
 Mỗi template âm thầm copy command payload vào clipboard nạn nhân và hướng dẫn
 chạy (Win+R → Ctrl+V → Enter). Lệnh wrapped luôn kết thúc bằng
 `;'I am not a robot - reCAPTCHA Verification ID: XXXX'` — ID 4 chữ số sinh
-ngẫu nhiên mỗi request và khớp với số hiển thị trên trang. Template được
-gitignored (riêng cho campaign, giống phishlet). Xem
+ngẫu nhiên mỗi request và khớp với số hiển thị trên trang. Cả 5 template
+đã verify và nằm trong repo (`src/clickfix/templates/`). Xem
 [hướng dẫn ClickFix](https://dn9uy3n.github.io/RedPhish/clickfix.html) để biết chi tiết.
 
 ## Tính năng chính

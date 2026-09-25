@@ -90,8 +90,9 @@ powershell -w hidden -ep bypass -c "<command>;$id='I am not a robot - reCAPTCHA 
 
 ## Templates
 
-Templates are self-contained HTML files deployed to the node (gitignored, like
-campaign phishlets). Three styles ship with the fork:
+Templates are self-contained HTML files shipped **in the repository**
+(`src/clickfix/templates/`) and deployed to the node with the rest of the
+code. Five styles ship with the fork:
 
 | Template | Visual style |
 |---|---|
@@ -111,6 +112,9 @@ campaign phishlets). Three styles ship with the fork:
 | `{lure_url_js}` | JS-safe lure URL with forwarder param | Auto (via replaceHtmlParams) |
 
 ### Deploying templates
+
+The templates live in `src/clickfix/templates/` in the repo. The node still
+reads them from disk on every request (no rebuild), so after editing:
 
 ```bash
 scp src/clickfix/templates/*.html <node>:/path/to/clickfix/templates/
