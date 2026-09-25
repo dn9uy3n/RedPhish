@@ -133,6 +133,16 @@ binaries) and verified end-to-end on the two-node lab (Kali + Ubuntu).
   (clashed with google's `mail` on instantiation).
 - Collision sweep now scripted (yaml-parse based, not grep).
 
+## v0.12.1a (2026-09-25) — linkedin clickfix rebuilt to the operator reference
+
+- Rebuilt from the operator's reference mock: LinkedIn **guest header**
+  (logo + Join now / Sign in pill), card with shield icon + title/subtitle,
+  **reCAPTCHA-style checkbox widget** (official swirl logo + Privacy -
+  Terms), steps with blue icon squares (monitor / keyboard / enter), kbd
+  badges, agreement line with the live VID, LinkedIn-blue pill Verify
+  (5-15 s enable), success state, protected footer. Template gitignored;
+  deployed to the node, both stages text- and screenshot-verified.
+
 ## v0.12.0 (2026-09-22) — linkedin clickfix template (unverified)
 
 - **New `linkedin` ClickFix template**, marked **unverified**: LinkedIn-styled
