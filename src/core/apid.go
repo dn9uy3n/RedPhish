@@ -310,8 +310,9 @@ func (a *apiServer) handleCapabilities(w http.ResponseWriter, r *http.Request) {
 		"api_version": apiVersion,
 		"features":    apiFeatures,
 		"limits": map[string]int{
-			"lures":     4096,
-			"page_size": 200,
+			"lures":               4096,
+			"page_size":           200,
+			"phishlet_yaml_bytes": phishletYAMLMax,
 		},
 	})
 }
